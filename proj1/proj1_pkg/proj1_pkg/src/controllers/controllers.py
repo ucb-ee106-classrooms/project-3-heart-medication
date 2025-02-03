@@ -467,8 +467,9 @@ class WorkspaceVelocityController(Controller):
         target_acceleration: ndarray of desired accelerations (should you need this?).
         """
         raise NotImplementedError
-        control_input = None        
-        self._limb.set_joint_velocities(joint_array_to_dict(control_input, self._limb))
+        # control_input = None        
+        # self._limb.set_joint_velocities(joint_array_to_dict(control_input, self._limb))
+        
 
 
 class PDJointVelocityController(Controller):
@@ -507,8 +508,18 @@ class PDJointVelocityController(Controller):
         target_velocity: 7x' :obj:`numpy.ndarray` of desired velocities
         target_acceleration: 7x' :obj:`numpy.ndarray` of desired accelerations
         """
-        raise NotImplementedError
-        control_input = None
+        # raise NotImplementedError
+        # control_input = None
+        # self._limb.set_joint_velocities(joint_array_to_dict(control_input, self._limb))
+        current_position = get_joint_positions(self._limb)
+        current_velocity = get_joint_velocities(self._limb)
+
+        position_error = target_position - current_position
+        velocity_error = target_velocity - current_velocity
+
+        control_input = np.dot(self.Kp, position_error)+np.dot(self.Kv, velocity_error)
+
+        #set joint velocities
         self._limb.set_joint_velocities(joint_array_to_dict(control_input, self._limb))
 
 class PDJointTorqueController(Controller):
@@ -550,6 +561,25 @@ class PDJointTorqueController(Controller):
         target_velocity: 7x' :obj:`numpy.ndarray` of desired velocities
         target_acceleration: 7x' :obj:`numpy.ndarray` of desired accelerations
         """
-        raise NotImplementedError
-        control_input = None
+        # raise NotImplementedError
+        # control_input = None
+        # self._limb.set_joint_torques(joint_array_to_dict(control_input, self._limb))
+
+        positions_dict = joint_array_to_dict(get_joint_positions(self._limb), self._limb)
+        velocity_dict = joint_array_to_dict(get_joint_velocities(self._limb), self._limb)
+
+        position_error = target_position - get_joint_positions(self._limb)
+        velocity_error = target_velocity - get_joint_velocities(self._limb)
+
+        #dynamic matrices 
+        M = self._kin.inertia(positions_dict)
+        C = self._kin.coriolis(positions_dict, velocity_dict)
+        G = self._kin.gravity(positions_dict)*0.01 
+
+        #pd control law 
+        desired_acceleration = np.dot(self.Kp, position_error) + np.dot(self.Kv, velocity_error) + target_acceleration
+        control_input = np.dot(M, desired_acceleration) + C + G 
+
         self._limb.set_joint_torques(joint_array_to_dict(control_input, self._limb))
+
+

@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "./proj1/proj1_pkg/proj1_pkg/src",
+        "./proj1/proj1_pkg/baxter_pykdl/src"
+    ]
+}

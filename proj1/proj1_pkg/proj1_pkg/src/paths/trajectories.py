@@ -140,15 +140,14 @@ class Trajectory:
 
 class LinearTrajectory(Trajectory):
 
-    def __init__(self):
-        """
-        Remember to call the constructor of Trajectory
-        Parameters
-        ----------
-        ????? You're going to have to fill these in how you see fit
-        """
-        pass
-        # Trajectory.__init__(self, ...)
+    def __init__(self, start_position, goal_position, total_time):
+        Trajectory.__init__(self, total_time)
+        self.start_position = start_position
+        self.goal_position = goal_position
+        self.distance = self.goal_position - self.start_position
+        self.acceleration = (self.distance * 4.0) / (self.total_time ** 2) # keep constant magnitude acceleration
+        self.v_max = (self.total_time / 2.0) * self.acceleration # maximum velocity magnitude
+        self.desired_orientation = np.array([0, 1, 0, 0])
 
     def target_pose(self, time):
         """
@@ -168,7 +167,17 @@ class LinearTrajectory(Trajectory):
         7x' :obj:`numpy.ndarray`
             desired configuration in workspace coordinates of the end effector
         """
-        pass
+        if time <= self.total_time / 2.0:
+            # TODO: calculate the position of the end effector at time t, 
+            # For the first half of the trajectory, maintain a constant acceleration
+            pos = self.start_position + 0.5 * self.acceleration * (time**2)
+        else:
+            # TODO: Calculate the position of the end effector at time t, 
+            # For the second half of the trajectory, maintain a constant acceleration
+            # Hint: Calculate the remaining distance to the goal position. 
+            remaining_time = self.total_time - time
+            pos = self.goal_position -0.5*self.acceleration*(remaining_time**2)
+        return np.hstack((pos, self.desired_orientation))
 
     def target_velocity(self, time):
         """
@@ -185,19 +194,30 @@ class LinearTrajectory(Trajectory):
         6x' :obj:`numpy.ndarray`
             desired body-frame velocity of the end effector
         """
-        pass
+        if time <= self.total_time / 2.0:
+            # TODO: calculate velocity using the acceleration and time
+            # For the first half of the trajectory, we maintain a constant acceleration
+
+            
+            linear_vel = self.acceleration * time
+        else:
+            # TODO: start slowing the velocity down from the maximum one
+            # For the second half of the trajectory, maintain a constant deceleration
+            time_past_mid = time - self.total_time / 2.0
+            linear_vel = self.v_max - self.acceleration*time_past_mid
+
+
+        return np.hstack((linear_vel, np.zeros(3)))
 
 class CircularTrajectory(Trajectory):
 
     def __init__(self, center_position, radius, total_time):
-        """
-        Remember to call the constructor of Trajectory
-        Parameters
-        ----------
-        ????? You're going to have to fill these in how you see fit
-        """
-        pass
-        # Trajectory.__init__(self, ...)
+        Trajectory.__init__(self, total_time)
+        self.center_position = center_position
+        self.radius = radius
+        self.angular_acceleration = (2 * np.pi * 4.0) / (self.total_time ** 2) # keep constant magnitude acceleration
+        self.angular_v_max = (self.total_time / 2.0) * self.angular_acceleration # maximum velocity magnitude
+        self.desired_orientation = np.array([0, 1, 0, 0])
 
     def target_pose(self, time):
         """
@@ -217,7 +237,22 @@ class CircularTrajectory(Trajectory):
         7x' :obj:`numpy.ndarray`
             desired configuration in workspace coordinates of the end effector
         """
-        pass
+        if time <= self.total_time / 2.0:
+            # TODO: calculate the ANGLE of the end effector at time t, 
+            # For the first half of the trajectory, maintain a constant acceleration
+            
+
+            theta = 0.5*self.angular_acceleration*(time**2)
+        else:
+            # TODO: Calculate the ANGLE of the end effector at time t, 
+            # For the second half of the trajectory, maintain a constant acceleration
+            # Hint: Calculate the remaining angle to the goal position. 
+
+            remaining_time = self.total_time - time 
+            
+            theta = 2*np.pi -0.5*self.angular_acceleration*(remaining_time**2)
+        pos_d = np.ndarray.flatten(self.center_position + self.radius * np.array([np.cos(theta), np.sin(theta), 0]))
+        return np.hstack((pos_d, self.desired_orientation))
 
     def target_velocity(self, time):
         """
@@ -234,7 +269,22 @@ class CircularTrajectory(Trajectory):
         6x' :obj:`numpy.ndarray`
             desired body-frame velocity of the end effector
         """
-        pass
+        if time <= self.total_time / 2.0:
+            # TODO: calculate ANGULAR position and velocity using the acceleration and time
+            # For the first half of the trajectory, we maintain a constant acceleration
+
+
+            theta = 0.5*self.angular_acceleration * (time**2)
+            theta_dot = self.angular_acceleration*time
+        else:
+            # TODO: start slowing the ANGULAR velocity down from the maximum one
+            # For the second half of the trajectory, maintain a constant deceleration
+            time_past_mid = time - (self.total_time/2.0)
+            
+            theta = 2*np.pi - 0.5*self.angular_acceleration * (self.total_time-time)**2
+            theta_dot = self.angular_v_max - self.angular_acceleration*time_past_mid
+        vel_d = np.ndarray.flatten(self.radius * theta_dot * np.array([-np.sin(theta), np.cos(theta), 0]))
+        return np.hstack((vel_d, np.zeros(3)))
 
 class PolygonalTrajectory(Trajectory):
     def __init__(self, points, total_time):

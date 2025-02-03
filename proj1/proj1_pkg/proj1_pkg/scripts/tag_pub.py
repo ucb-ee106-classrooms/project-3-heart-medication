@@ -41,9 +41,9 @@ def tag_pub(tags):
         try:
             t = listener.getLatestCommonTime(from_frame, to_frame)
             pos, quat = listener.lookupTransform(from_frame, to_frame, t)
-            print 'Found marker {}'.format(tags[i])
+            print ('Found marker {}'.format(tags[i]))
         except:
-            print 'Could not find marker {}'.format(tags[i])
+            print ('Could not find marker {}'.format(tags[i]))
             continue
         if pos is not None:
             # pub.publish(*tag_pos)
@@ -52,12 +52,12 @@ def tag_pub(tags):
         r.sleep()
             
 if __name__ == '__main__':
-    # How to run: python src/tag_pub.py -tag 4 6 3
-    #  python src/tag_pub.py -tag 4
+    # How to run: python src/tag_pub.py -ar_marker 4 6 3
+    #  python src/tag_pub.py -ar_marker 4
     parser = argparse.ArgumentParser()
     parser.add_argument('-ar_marker', '-ar', nargs='+', required=True, help='the tag number')
     args = parser.parse_args()
     try:
-        tag_pub(args.tags)
+        tag_pub(args.ar_marker)
     except rospy.ROSInterruptException:
         pass
