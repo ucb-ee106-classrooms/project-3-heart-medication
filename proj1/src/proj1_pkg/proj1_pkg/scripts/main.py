@@ -28,9 +28,21 @@ import tf
 import tf2_ros
 import intera_interface
 import moveit_commander
+import math
 from moveit_msgs.msg import DisplayTrajectory, RobotState
 from sawyer_pykdl import sawyer_kinematics
 
+# helper to generate nd.array with offsets in XY for polygon of sides with length centered at the origin
+def generatePolygonOffsets(sides, length):
+    offsets = []
+    angle = 2 * math.pi / sides
+    radius = (length / (2 * math.sin(math.pi / sides)))
+
+    for i in range(0, sides):
+        x = radius * math.cos(i * angle)
+        y = radius * math.sin(i * angle)
+        offsets.append(np.array([x, y, 0]))        
+    return offsets
 
 def lookup_tag(tag_number):
     """
@@ -55,12 +67,11 @@ def lookup_tag(tag_number):
 
     try:
         trans = tfBuffer.lookup_transform('base', to_frame, rospy.Time(0), rospy.Duration(10.0))
+        tag_pos = [getattr(trans.transform.translation, dim) for dim in ('x', 'y', 'z')]
+        return np.array(tag_pos)
     except Exception as e:
         print(e)
         print("Retrying ...")
-
-    tag_pos = [getattr(trans.transform.translation, dim) for dim in ('x', 'y', 'z')]
-    return np.array(tag_pos)
 
 def get_trajectory(limb, kin, ik_solver, tag_pos, args):
     """
@@ -86,19 +97,34 @@ def get_trajectory(limb, kin, ik_solver, tag_pos, args):
     listener = tf2_ros.TransformListener(tfBuffer)
 
     try:
-        trans = tfBuffer.lookup_transform('base', 'right_hand_gripper', rospy.Time(0), rospy.Duration(10.0))
+        trans = tfBuffer.lookup_transform('base', 'right_hand', rospy.Time(0), rospy.Duration(10.0))
     except Exception as e:
         print(e)
-
+    
     current_position = np.array([getattr(trans.transform.translation, dim) for dim in ('x', 'y', 'z')])
     print("Current Position:", current_position)
 
     if task == 'line':
-        trajectory = LinearTrajectory()
+        target_pos = tag_pos[0]
+        target_pos[2] += 0.4 # move 0.4m above AR tag
+        print("TARGET POSITION", target_pos)
+        trajectory = LinearTrajectory(start_position=current_position, goal_position=target_pos, total_time=9)
     elif task == 'circle':
-        trajectory = CircularTrajectory()
+        target_pos = tag_pos[0]
+        target_pos[2] += 0.5 # move 0.5m above AR tag
+        print("TARGET POSITION", target_pos)
+        trajectory = CircularTrajectory(center_position=target_pos, radius=0.1, total_time=15)
     elif task == 'polygon':
-        trajectory = PolygonalTrajectory()
+        #one reference ar tag with offsets around it 
+        center_pos = tag_pos[0]
+        center_pos[2] += 0.7
+        sides = int(input("\nEnter integer number of polygon sides\n"))
+        length = float(input("\nEnter side length\n"))
+        offsets = generatePolygonOffsets(sides, length)
+        points = [center_pos+offset for offset in offsets]
+        print("OFFSETS", offsets)
+        print("POLYGONAL WAYPOINTS: ", points)
+        trajectory = PolygonalTrajectory(center_pos, points, total_time = 16)
     else:
         raise ValueError('task {} not recognized'.format(task))
     path = MotionPath(limb, kin, ik_solver, trajectory)
@@ -161,7 +187,10 @@ def main():
     )
     parser.add_argument('-rate', type=int, default=200, help="""
         This specifies how many ms between loops.  It is important to use a rate
-        and not a regular while loop because you want the loop to refresh at a
+        and not a regular wwhile not rospy.is_shutdown():
+            try:
+                # limb.move_to_joint_positions(joint_array_to_dict(start, limb), timeout=7.0, threshold=0.0001) # ONLY FOR EMERGENCIES!!!
+                plan = phile loop because you want the loop to refresh at a
         constant rate, otherwise you would have to tune your PD parameters if 
         the loop runs slower / faster.  Default: 200"""
     )

@@ -1,0 +1,6 @@
+roslaunch proj1_pkg/proj1_pkg sawyer_webcam_track.launch
+
+rosrun tf tf_echo base ar_marker_XX
+
+python proj1_pkg/proj1_pkg/scripts/main.py -t line -ar 13 -c open_loop --log
+

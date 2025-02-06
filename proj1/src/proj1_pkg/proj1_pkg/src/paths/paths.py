@@ -104,7 +104,7 @@ class MotionPath:
             # we said you shouldn't simply take a finite difference when creating
             # the path, why do you think we're doing that here?
             point.positions = theta_t
-            point.velocities = (theta_t - theta_t_1) / delta_t
+            point.velocities = (theta_t - theta_t_1) / delta_t #PROBLEM HERE???
             point.accelerations = (theta_t - 2*theta_t_1 + theta_t_2) / (delta_t**2)
             self.previous_computed_ik = theta_t
         else:
