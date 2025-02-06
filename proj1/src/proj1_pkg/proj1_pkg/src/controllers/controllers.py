@@ -412,7 +412,63 @@ class Controller:
         bool
             whether the controller completes the path or not
         """
-        raise NotImplementedError
+        # raise NotImplementedError
+        r = rospy.Rate(rate)
+        listener = tf.TransformListener()
+        try:
+            listener.waitForTransform("base", f"ar_marker_{tag}", rospy.Time(), rospy.Duration(4.0))
+        except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+            rospy.logerr(f"Failed to get the transform: {e}")
+        
+        if log:
+            times = []
+            actual_positions = []
+            actual_velocities = []
+            target_positions = []
+            target_velocities = []
+        
+        start_t = rospy.Time.now()
+
+        while not rospy.is_shutdown():
+            #find time from start
+            t = (rospy.Time.now()-start_t).to_sec()
+
+            #if controller timed out, stop moving and return false 
+            if timeout is not None and t>=timeout:
+                self.stop_moving()
+                return False
+
+            try:
+                #lookup transform for the ar tag
+                now = rospy.Time(0)
+                listener.waitForTransform("base", "ar_marker_{tag}", now, rospy.Duration(1.0))
+                (trans, rot) = listener.lookupTransform("base",f"ar_marker_{tag}", now)
+
+                target_position = np.array(list(trans)+list(rot))
+                target_velocity = np.array([1,1,1,1,1,1]) #hardcode for now, later in terms of distance bw tag and sawyer
+                target_acceleration = np.array([1,1,1,1,1,1])
+
+                if log:
+                    times.append(t)
+                    actual_positions.append(get_joint_positions(self._limb))
+                    actual_velocities.append(get_joint_velocities(self._limb))
+                    target_positions.append(target_position)
+                    target_velocities.append(target_velocity)
+                #step control based on the retrieved target pos/velocity
+                self.step_control(target_position, target_velocity, target_acceleration)
+            except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+                rospy.logerr(f"Transform error: {e}")
+            r.sleep()
+        if log:
+            self.plot_results(
+                times,
+                actual_positions,
+                actual_velocities,
+                target_positions,
+                target_velocities
+            )
+        return True 
+
 
 class FeedforwardJointVelocityController(Controller):
     def step_control(self, target_position, target_velocity, target_acceleration):

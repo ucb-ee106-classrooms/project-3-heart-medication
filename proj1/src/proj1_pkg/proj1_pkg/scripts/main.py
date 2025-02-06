@@ -149,8 +149,9 @@ def get_controller(controller_name, limb, kin):
         controller = WorkspaceVelocityController(limb, kin, Kp, Kv)
     elif controller_name == 'jointspace':
         # YOUR CODE HERE
-        Kp = None
-        Kv = None
+        Kp = 0.2*np.array([0.4,2,1.7,1.5,2,2,3])
+        Kv = np.array([0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+        # Kv = 0.01*np.array([2,1,2,0.5,0.8,0.8,0.8]) #Kd
         controller = PDJointVelocityController(limb, kin, Kp, Kv)
     elif controller_name == 'torque':
         # YOUR CODE HERE
@@ -273,12 +274,19 @@ def main():
         except KeyboardInterrupt:
             sys.exit()
         # execute the path using your own controller.
-        done = controller.execute_path(
-            robot_trajectory, 
+        # done = controller.execute_path(
+        #     robot_trajectory, 
+        #     rate=args.rate, 
+        #     timeout=args.timeout, 
+        #     log=args.log
+        # )
+        done = controller.follow_ar_tag(
+            10, 
             rate=args.rate, 
             timeout=args.timeout, 
             log=args.log
         )
+
         if not done:
             print('Failed to move to position')
             sys.exit(0)
