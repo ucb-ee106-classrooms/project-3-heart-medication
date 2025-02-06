@@ -414,9 +414,11 @@ class Controller:
         """
         # raise NotImplementedError
         r = rospy.Rate(rate)
+        tfBuffer = tf2_ros.Buffer()
         listener = tf.TransformListener()
         try:
-            listener.waitForTransform("base", f"ar_marker_{tag}", rospy.Time(), rospy.Duration(4.0))
+            print('tag is', tag)
+            listener.waitForTransform("base", f"ar_marker_{tag}", rospy.Time(0), rospy.Duration(3.0))
         except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
             rospy.logerr(f"Failed to get the transform: {e}")
         
@@ -441,12 +443,31 @@ class Controller:
             try:
                 #lookup transform for the ar tag
                 now = rospy.Time(0)
-                listener.waitForTransform("base", "ar_marker_{tag}", now, rospy.Duration(1.0))
+                listener.waitForTransform("base", f"ar_marker_{tag}", now, rospy.Duration(1.0))
                 (trans, rot) = listener.lookupTransform("base",f"ar_marker_{tag}", now)
 
                 target_position = np.array(list(trans)+list(rot))
-                target_velocity = np.array([1,1,1,1,1,1]) #hardcode for now, later in terms of distance bw tag and sawyer
-                target_acceleration = np.array([1,1,1,1,1,1])
+                
+                
+                #Attempt 1 - hardcoded target velocity
+                # target_velocity = np.array([0.05,0.05,0.05,0.05,0.05,0.05,0.05]) #hardcode for now, later in terms of distance bw tag and sawyer
+                
+                #Attempt 2
+                #get current end effector position
+                print(get_joint_positions(self._limb))
+                current_end_effector_pose = self._kin.forward_position_kinematics(get_joint_positions(self._limb))[:3]
+                #error between the current position and the ar tag position 
+                position_error = np.array(trans)-current_end_effector_pose
+                position_error[2] = 0 #no vertical displacement, only side to side 
+
+                #proportional control to set target velocity based on position error 
+                Kp = 0.5
+                linear_velocity = Kp*position_error
+                target_velocity = np.hstack((linear_velocity, np.zeros(3)))
+                
+                
+                
+                target_acceleration = np.array([0,0,0,0,0,0,0])
 
                 if log:
                     times.append(t)
