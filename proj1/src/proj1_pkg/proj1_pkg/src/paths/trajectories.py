@@ -305,7 +305,7 @@ class PolygonalTrajectory(Trajectory):
         nextpt = points[1]
         nextIndex = 1
         for point in points:
-            self.linear_trajectories.append(LinearTrajectory(point, nextpt, total_time/len(points))) # int division?
+            self.linear_trajectories.append(LinearTrajectory(point, nextpt, self.interval)) # int division?
             nextIndex += 1
             if nextIndex < len(points):
                 nextpt = points[nextIndex]
@@ -356,9 +356,10 @@ class PolygonalTrajectory(Trajectory):
         # segment_index, local_time = self.get_current_segment(time)
         # return self.segment_trajectories[segment_index].target_pose(local_time)
         segment_num = int(time//self.interval)
+        progress = time%self.interval
         if segment_num >= self.num_points:
-            segment_num = -1 
-        progress = time % self.interval 
+            segment_num = -1
+            progress = self.interval # if get 10.2, robot will be at end of final trajectory, so set progress to end of traj
         cur_trajectory = self.linear_trajectories[segment_num]
         return cur_trajectory.target_pose(progress)
         
@@ -380,9 +381,10 @@ class PolygonalTrajectory(Trajectory):
         # segment_index, local_time = self.get_current_segment(time)
         # return self.segment_trajectories[segment_index].target_velocity(local_time)
         segment_num = int(time//self.interval)
+        progress = time%self.interval
         if segment_num >= self.num_points:
             segment_num = -1
-        progress = time%self.interval
+            progress = self.interval # if get 10.2, robot will be at end of final trajectory, so set progress to end of traj
         cur_trajectory = self.linear_trajectories[segment_num]
         return cur_trajectory.target_velocity(progress)
 
