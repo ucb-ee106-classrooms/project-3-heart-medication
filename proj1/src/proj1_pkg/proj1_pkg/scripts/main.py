@@ -281,7 +281,7 @@ def main():
         #     log=args.log
         # )
         done = controller.follow_ar_tag(
-            10, 
+            args.ar_marker[0],  # assumes only one ar tag
             rate=args.rate, 
             timeout=args.timeout, 
             log=args.log

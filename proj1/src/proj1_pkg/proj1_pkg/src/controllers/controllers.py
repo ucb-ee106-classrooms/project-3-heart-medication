@@ -412,7 +412,6 @@ class Controller:
         bool
             whether the controller completes the path or not
         """
-        # raise NotImplementedError
         r = rospy.Rate(rate)
         tfBuffer = tf2_ros.Buffer()
         listener = tf.TransformListener()
@@ -455,28 +454,57 @@ class Controller:
                 #Attempt 2
                 #get current end effector position
                 print(get_joint_positions(self._limb))
-                current_end_effector_pose = self._kin.forward_position_kinematics(get_joint_positions(self._limb))[:3]
+                #current_end_effector_pose = self._kin.forward_position_kinematics(get_joint_positions(self._limb))[:3]
+                
+                #current_end_effector_pose = (get_joint_positions(self._limb))[:3] # this does not error but incorrect
+                
+                # Attempt 3
+                # how to compare apples to apples? We have lookup transform for the AR tag, need joint_pos? Or fwd_poz_kine(get_joint_pos?) lookup transform
+                # get_joint_pos = returns joint angles.
+                # copy from the above AR tag code, "right_hand" from current_position in main
+                # returns transform between base and right_hand
+                arm_now = rospy.Time(0)
+                listener.waitForTransform("base", f"right_hand", arm_now, rospy.Duration(1.0))
+                (arm_trans, arm_rot) = listener.lookupTransform("base",f"right_hand", arm_now)
+                
+                # # Attempt 4: copy from main current_position
+                # arm_trans = tfBuffer.lookup_transform("base", 'right_hand', rospy.Time(0), rospy.Duration(1.0))
+    
+                # current_position = np.array([getattr(arm_trans.transform.translation, dim) for dim in ('x', 'y', 'z')])
+                # print("Current Position:", current_position)
+
+
                 #error between the current position and the ar tag position 
-                position_error = np.array(trans)-current_end_effector_pose
+                position_error = np.array(trans)-np.array(arm_trans)
                 position_error[2] = 0 #no vertical displacement, only side to side 
 
                 #proportional control to set target velocity based on position error 
                 Kp = 0.5
+                
+                # velo calc wrong; taking x, y, z pos error and sending it as velocity to 2 of 7 joints
+                # how convert x, y translation to target_velocity in jointspace?
+                # if get x, y translation to be in jointspace, then ok
+                # how move workpace to jointspace
+                # wait -- just do transform from ar_marker to right_hand? nah then get trans + rot
+                # inverse kinematics?
                 linear_velocity = Kp*position_error
                 target_velocity = np.hstack((linear_velocity, np.zeros(3)))
-                
-                
-                
-                target_acceleration = np.array([0,0,0,0,0,0,0])
+                            
+                target_acceleration = np.array([0,0,0,0,0,0,0]) # questionable?
+                safe_target_position = target_position.copy()
+                safe_target_position[2] += 0.5 # keep z const
+                # change target rotation to have hand straight down (see Trajectories.py:target_pose)
+                safe_target_position[3], safe_target_position[4], safe_target_position[5], safe_target_position[6] = 0, 1, 0, 0 
+                #breakpoint();                
 
                 if log:
                     times.append(t)
                     actual_positions.append(get_joint_positions(self._limb))
                     actual_velocities.append(get_joint_velocities(self._limb))
-                    target_positions.append(target_position)
+                    target_positions.append(safe_target_position)
                     target_velocities.append(target_velocity)
                 #step control based on the retrieved target pos/velocity
-                self.step_control(target_position, target_velocity, target_acceleration)
+                self.step_control(safe_target_position, target_velocity, target_acceleration)
             except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
                 rospy.logerr(f"Transform error: {e}")
             r.sleep()
