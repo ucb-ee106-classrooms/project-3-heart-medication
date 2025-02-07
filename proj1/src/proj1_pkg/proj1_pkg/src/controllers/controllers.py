@@ -413,6 +413,7 @@ class Controller:
         bool
             whether the controller completes the path or not
         """
+        #need to convert to jointspace from workspace if we are using the jointspace controller!
         r = rospy.Rate(rate)
         tfBuffer = tf2_ros.Buffer()
         listener = tf.TransformListener()
@@ -494,7 +495,7 @@ class Controller:
                 # very questionable
                 target_acceleration = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
                 safe_target_position = target_position.copy()
-                safe_target_position[2] += 0.5 # keep z const
+                safe_target_position[2] += 0.8 # keep z const
                 # change target rotation to have hand straight down (see Trajectories.py:target_pose)
                 safe_target_position[3], safe_target_position[4], safe_target_position[5], safe_target_position[6] = 0, 1, 0, 0 
                 #breakpoint();                
@@ -579,7 +580,7 @@ class WorkspaceVelocityController(Controller):
         # control_input = None        
         # self._limb.set_joint_velocities(joint_array_to_dict(control_input, self._limb))
         spatial_twist = np.zeros(6)
-        if self.previous_desired != None:
+        if self.previous_desired is not None:
             workspace = self._kin.forward_position_kinematics()
             g_target = get_g_matrix(self.previous_desired[:3], self.previous_desired[3:])
             g_tool = get_g_matrix(workspace[:3], workspace[3:])

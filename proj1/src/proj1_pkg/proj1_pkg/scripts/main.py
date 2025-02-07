@@ -106,12 +106,12 @@ def get_trajectory(limb, kin, ik_solver, tag_pos, args):
 
     if task == 'line':
         target_pos = tag_pos[0]
-        target_pos[2] += 0.4 # move 0.4m above AR tag
+        target_pos[2] += 0.8 # move 0.8m above AR tag
         print("TARGET POSITION", target_pos)
         trajectory = LinearTrajectory(start_position=current_position, goal_position=target_pos, total_time=9)
     elif task == 'circle':
         target_pos = tag_pos[0]
-        target_pos[2] += 0.5 # move 0.5m above AR tag
+        target_pos[2] += 0.8 # move 0.8m above AR tag
         print("TARGET POSITION", target_pos)
         trajectory = CircularTrajectory(center_position=target_pos, radius=0.1, total_time=15)
     elif task == 'polygon':
@@ -144,7 +144,7 @@ def get_controller(controller_name, limb, kin):
     """
     if controller_name == 'workspace':
         # YOUR CODE HERE
-        Kp = 5*np.ones(6)
+        Kp = 0.7*np.ones(6)
         Kv = 0*np.zeros(6)
         controller = WorkspaceVelocityController(limb, kin, Kp, Kv)
     elif controller_name == 'jointspace':
@@ -274,12 +274,16 @@ def main():
         except KeyboardInterrupt:
             sys.exit()
         # execute the path using your own controller.
+
+        #uncomment execute for TRAJECTORY
         done = controller.execute_path(
             robot_trajectory, 
             rate=args.rate, 
             timeout=args.timeout, 
             log=args.log
         )
+
+        #uncomment follow ar for FOLLOW AR
         # done = controller.follow_ar_tag(
         #     args.ar_marker[0],  # assumes only one ar tag
         #     rate=args.rate, 
