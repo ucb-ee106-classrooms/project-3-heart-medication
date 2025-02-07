@@ -12,6 +12,7 @@ import itertools
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+from scipy.linalg import logm
 
 # Lab imports
 from utils.utils import *
@@ -479,7 +480,7 @@ class Controller:
                 position_error[2] = 0 #no vertical displacement, only side to side 
 
                 #proportional control to set target velocity based on position error 
-                Kp = 0.5
+                Kp = 0.2
                 
                 # velo calc wrong; taking x, y, z pos error and sending it as velocity to 2 of 7 joints
                 # how convert x, y translation to target_velocity in jointspace?
@@ -490,7 +491,8 @@ class Controller:
                 linear_velocity = Kp*position_error
                 target_velocity = np.hstack((linear_velocity, np.zeros(3)))
                             
-                target_acceleration = np.array([0,0,0,0,0,0,0]) # questionable?
+                # very questionable
+                target_acceleration = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
                 safe_target_position = target_position.copy()
                 safe_target_position[2] += 0.5 # keep z const
                 # change target rotation to have hand straight down (see Trajectories.py:target_pose)
@@ -551,6 +553,8 @@ class WorkspaceVelocityController(Controller):
         self.Kp = np.diag(Kp)
         self.Kv = np.diag(Kv)
         self.is_jointspace_controller = False
+        self.previous_desired = None
+
 
     def step_control(self, target_position, target_velocity, target_acceleration):
         """
@@ -571,9 +575,27 @@ class WorkspaceVelocityController(Controller):
         target_velocity: (6,) ndarray of desired body-frame se(3) velocity (vx, vy, vz, wx, wy, wz).
         target_acceleration: ndarray of desired accelerations (should you need this?).
         """
-        raise NotImplementedError
+        # raise NotImplementedError
         # control_input = None        
         # self._limb.set_joint_velocities(joint_array_to_dict(control_input, self._limb))
+        spatial_twist = np.zeros(6)
+        if self.previous_desired != None:
+            workspace = self._kin.forward_position_kinematics()
+            g_target = get_g_matrix(self.previous_desired[:3], self.previous_desired[3:])
+            g_tool = get_g_matrix(workspace[:3], workspace[3:])
+            g_error = np.linalg.inv(g_tool) @ g_target
+            g_hat = logm(g_error)
+            twist = np.array([g_hat[0][3], g_hat[1][3], g_hat[2][3], g_hat[2][1], g_hat[0][2], g_hat[1][0]])
+            spatial_twist = adj(g_tool)@twist
+        u = self.Kp @ spatial_twist + target_velocity 
+        print(target_velocity)
+        angles = self._limb.joint_angles()
+        control_input = self._kin.jacobian_pseudo_inverse(angles) @ u
+        control_input = np.array(control_input.tolist())
+        self._limb.set_joint_velocities(joint_array_to_dict(control_input[0], self._limb))
+
+        # Update the previous desired position for the next control step
+        self.previous_desired = target_position
         
 
 

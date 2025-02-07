@@ -23,6 +23,9 @@ rosrun tf tf_echo base ar_marker_XX
 
 python src/proj1_pkg/proj1_pkg/scripts/main.py -t line -ar XX -c open_loop --log
 
+python -m pdb myScript.py -args
+- launches in debugging mode
+
 
 Notes
 -- controller chooser and follow ar implementation is all in controllers.py,
