@@ -10,6 +10,7 @@ import sys
 import numpy as np
 import itertools
 import matplotlib
+import keyboard
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from scipy.linalg import logm
@@ -431,8 +432,9 @@ class Controller:
             target_velocities = []
         
         start_t = rospy.Time.now()
+        timer = rospy.Time.now()
 
-        while not rospy.is_shutdown():
+        while not rospy.is_shutdown() and timer.secs - start_t.secs < 40:
             #find time from start
             t = (rospy.Time.now()-start_t).to_sec()
 
@@ -446,7 +448,8 @@ class Controller:
                 now = rospy.Time(0)
                 listener.waitForTransform("base", f"ar_marker_{tag}", now, rospy.Duration(1.0))
                 (trans, rot) = listener.lookupTransform("base",f"ar_marker_{tag}", now)
-
+                
+                
                 target_position = np.array(list(trans)+list(rot))
                 
                 
@@ -498,7 +501,7 @@ class Controller:
                 safe_target_position[2] += 0.8 # keep z const
                 # change target rotation to have hand straight down (see Trajectories.py:target_pose)
                 safe_target_position[3], safe_target_position[4], safe_target_position[5], safe_target_position[6] = 0, 1, 0, 0 
-                #breakpoint();                
+                #breakpoint()                
 
                 if log:
                     times.append(t)
@@ -508,6 +511,8 @@ class Controller:
                     target_velocities.append(target_velocity)
                 #step control based on the retrieved target pos/velocity
                 self.step_control(safe_target_position, target_velocity, target_acceleration)
+                timer = rospy.Time.now()
+
             except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
                 rospy.logerr(f"Transform error: {e}")
             r.sleep()

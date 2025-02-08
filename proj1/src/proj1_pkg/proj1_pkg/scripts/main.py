@@ -144,14 +144,15 @@ def get_controller(controller_name, limb, kin):
     """
     if controller_name == 'workspace':
         # YOUR CODE HERE
-        Kp = 0.7*np.ones(6)
-        Kv = 0*np.zeros(6)
+        Kp = 1.5*np.ones(6)
+        Kv = 0.5*np.ones(6)
+        
         controller = WorkspaceVelocityController(limb, kin, Kp, Kv)
     elif controller_name == 'jointspace':
         # YOUR CODE HERE
         Kp = 0.2*np.array([0.4,2,1.7,1.5,2,2,3])
-        Kv = np.array([0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-        # Kv = 0.01*np.array([2,1,2,0.5,0.8,0.8,0.8]) #Kd
+        # Kv = np.array([0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+        Kv = 0.01*np.array([2,1,2,0.5,0.8,0.8,0.8]) #Kd
         controller = PDJointVelocityController(limb, kin, Kp, Kv)
     elif controller_name == 'torque':
         # YOUR CODE HERE
@@ -276,20 +277,20 @@ def main():
         # execute the path using your own controller.
 
         #uncomment execute for TRAJECTORY
-        done = controller.execute_path(
-            robot_trajectory, 
-            rate=args.rate, 
-            timeout=args.timeout, 
-            log=args.log
-        )
-
-        #uncomment follow ar for FOLLOW AR
-        # done = controller.follow_ar_tag(
-        #     args.ar_marker[0],  # assumes only one ar tag
+        # done = controller.execute_path(
+        #     robot_trajectory, 
         #     rate=args.rate, 
         #     timeout=args.timeout, 
         #     log=args.log
         # )
+
+        #uncomment follow ar for FOLLOW AR
+        done = controller.follow_ar_tag(
+            args.ar_marker[0],  # assumes only one ar tag
+            rate=args.rate, 
+            timeout=args.timeout, 
+            log=args.log
+        )
 
         if not done:
             print('Failed to move to position')
