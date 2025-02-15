@@ -2,6 +2,7 @@
     "python.analysis.extraPaths": [
         "./proj1/proj1_pkg/proj1_pkg/src",
         "./proj1/proj1_pkg/baxter_pykdl/src",
-        "./proj1/src/proj1_pkg/proj1_pkg/src"
+        "./proj1/src/proj1_pkg/proj1_pkg/src",
+        "./project2/src/proj2_pkg/src"
     ]
 }

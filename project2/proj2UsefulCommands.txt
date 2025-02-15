@@ -1,0 +1,48 @@
+cd project2
+
+source ~ee106b/sawyer_setup.bash
+
+source devel/setup.bash
+
+catkin_make 
+
+roscore
+
+roslaunch proj2_pkg init_env.launch map:=empty.yaml start_position:="1 1 0"
+- replace empty.yaml w a yaml file in the maps directory to use different terrain
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+Project 1
+
+---------------------------------------------------------------------------------------------------------------------------------------
+rosrun intera_interface enable_robot.py -e
+
+roslaunch intera_examples sawyer_tuck.launch
+
+rosrun intera_interface joint_trajectory_action_server.py
+
+roslaunch sawyer_moveit_config sawyer_moveit.launch electric_gripper:=[true or false]
+--> add image (usb cam) and tf objects 
+
+roslaunch proj1_pkg sawyer_webcam_track.launch
+
+rosrun tf tf_echo base ar_marker_XX
+
+python src/proj1_pkg/proj1_pkg/scripts/main.py -t line -ar XX -c open_loop --log
+
+python -m pdb myScript.py -args
+- launches in debugging mode
+
+
+Notes
+-- controller chooser and follow ar implementation is all in controllers.py,
+do not use follow_ar.py
+-- use execute_path to write follow_ar (aka continuous execute path)
+-- tune using Kp, finetune using Kv
+-- for follow ar, set a rate, using while rospy not shut down to continuously update it, follow ar goal is to follow the ar tag sideways
+-- follow ar doesn't actually have to go down to the ar tag!, calc target pose, manually find direction, call controller's step control to go there within the follow_ar method 
+-- for follow ar do not repeatedly call linear trajectory that is super slow, just call the controller 
+
+implemented follow ar, commented out execute path call in main.py, need to replace the cmd line arguments since follow ar doesn't actually call trajectories!
+if getting paths not found error, just catkin make and source devel again
