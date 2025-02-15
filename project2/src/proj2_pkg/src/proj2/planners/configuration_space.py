@@ -264,7 +264,11 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         """
         c1 and c2 should be numpy.ndarrays of size (4,)
         """
-        pass
+        dx = c1[0] - c2[0]
+        dy = c1[1] - c2[1]
+        dtheta = np.abs(c1[2]-c2[2])
+        dphi = np.abs(c1[3]-c2[3])
+        return np.sqrt(dx**2 + dy**2 + dtheta**2 + dphi**2)
 
     def sample_config(self, *args):
         """
@@ -275,14 +279,24 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         RRT implementation passes in the goal as an additional argument,
         which can be used to implement a goal-biasing heuristic.
         """
-        pass
+        x = np.random.uniform(self.low_lims[0], self.high_lims[0])
+        y = np.random.uniform(self.low_lims[1], self.high_lims[1])
+        theta = np.random.uniform(self.low_lims[2], self.high_lims[2])
+        phi = np.random.uniform(self.low_lims[3], self.high_lims[3])
+        return np.array([x,y,theta,phi])
 
     def check_collision(self, c):
         """
         Returns true if a configuration c is in collision
         c should be a numpy.ndarray of size (4,)
         """
-        pass
+        robot_x, robot_y = c[0], c[1]
+        for obs in self.obstacles:
+            obs_x, obs_y, obs_r = obs
+            dist = np.sqrt((robot_x - obs_x)**2 + (robot_y-obs_y)**2)
+            if dist < (self.robot_radius + obs_r):
+                return True
+        return False 
 
     def check_path_collision(self, path):
         """
@@ -293,7 +307,51 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         You should also ensure that the path does not exceed any state bounds,
         and the open loop inputs don't exceed input bounds.
         """
-        pass
+        for time, position, control_input in path:
+            if self.check_collision(position):
+                return True 
+        return False 
+            
+    def build_motion_primitives(curr_orientation):
+            motion_primitives = []
+            # motion primitives given as a vector [x, y, theta, phi], represents a transformation in state space
+            # normalized to 1 and should be multiplied by dt in path planning
+            x, y, theta, phi = curr_orientation
+            equal_weight = (1 / np.sqrt(2))        
+
+            # drive forward
+            forward = np.array([np.cos(theta + phi), np.sin(theta + phi), 0, 0])
+            motion_primitives.append(forward)
+
+            # drive backward
+            backward = np.array([-1 * np.cos(theta + phi), -1 * np.sin(theta + phi), 0, 0])
+            motion_primitives.append(backward)
+
+            # turn left
+            left = np.array([0, 0, 0, 1])
+            motion_primitives.append(left)
+
+            # turn right
+            right = np.array([0, 0, 0, -1])
+            motion_primitives.append(right)
+
+            # drive forward and turn left
+            forward_and_left = np.array([equal_weight * np.cos(theta + phi), equal_weight * np.sin(theta + phi), 0, equal_weight * 1])
+            motion_primitives.append(forward_and_left)
+
+            # drive forward and turn right
+            forward_and_left = np.array([equal_weight * np.cos(theta + phi), equal_weight * np.sin(theta + phi), 0, equal_weight * -1])
+            motion_primitives.append(forward_and_left)
+
+            # drive backwards and turn left
+            forward_and_left = np.array([-1 * equal_weight * np.cos(theta + phi), -1 * equal_weight * np.sin(theta + phi), 0, equal_weight * 1])
+            motion_primitives.append(forward_and_left)
+
+            # drive backwards and turn right
+            forward_and_left = np.array([-1 * equal_weight * np.cos(theta + phi), -1 * equal_weight * np.sin(theta + phi), 0, equal_weight * -1])
+            motion_primitives.append(forward_and_left)
+
+            return motion_primitives
 
     def local_plan(self, c1, c2, dt=0.01):
         """
@@ -331,4 +389,36 @@ class BicycleConfigurationSpace(ConfigurationSpace):
 
         This should return a cofiguration_space.Plan object.
         """
-        pass
+        x1, y1, theta1, phi1 = c1
+        x2, y2, theta2, phi2 = c2 
+
+        distance = np.linalg.norm([x2-x1, y2-y1]) # can use dist func
+        total_time = distance #fix this 
+
+        motion_primitives = self.build_motion_primitives(c1)
+        min_dist = float("inf")
+        min_index = 0
+
+        for i in range(len(motion_primitives)):
+            c1_new = c1 + motion_primitives[i]*dt
+            curr_dist = self.distance(c1_new, c2)
+            if curr_dist < min_dist:
+                min_dist = curr_dist
+                min_index = i
+        
+        return motion_primitives[min_index] # not right, need return plan object
+
+        #Motion Primitives Pseudocode 
+
+        # motion_primitives = build_motion_primitives(curr_orientation)
+
+        # for motion in motion_primitives:
+        #     update c1 with motion * dt
+        #     check distance c1_new and c2
+        #     min distance = motion_primitives
+
+        # return plan object with right primitive
+        plan = Plan(times, positions, open_loop_inputs, dt)
+        return plan 
+        
+

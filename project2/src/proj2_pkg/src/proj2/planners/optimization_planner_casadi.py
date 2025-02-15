@@ -101,12 +101,12 @@ def objective_func(q, u, q_goal, Q, R, P):
         ui = u[:, i]
 
         # Define one term of the summation here: ((q(i) - q_goal)^T * Q * (q(i) - q_goal) + (u(i)^T * R * u(i)))
-        term = ((qi-q_goal).T*Q*(qi-q_goal)+(ui.T*R*ui))  
+        term = ((qi-q_goal).T @ Q @ (qi-q_goal)+(ui.T@R@ui))  
         obj += term
 
     q_last = q[:, n]
     # Define the last term here: (q(N+1) - q_goal)^T * P * (q(N+1) - q_goal)
-    term_last = ((q_last - q_goal).T)*P*(q_last-q_goal)
+    term_last = ((q_last - q_goal).T) @ P @ (q_last-q_goal)
     obj += term_last
     return obj
 
