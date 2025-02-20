@@ -55,10 +55,18 @@ class Plan(object):
         """Returns a new plan that is a prefix of this plan up until the
         time until_time.
         """
-        times = self.times[self.times <= until_time]
-        positions = self.positions[self.times <= until_time]
-        open_loop_inputs = self.open_loop_inputs[self.times <= until_time]
-        return Plan(times, positions, open_loop_inputs)
+        ### BELOW APPEARS TO BE BUGGED - [self.times <= until_time] COMPARES LIST AND INT ###
+
+        # times = self.times[self.times <= until_time]
+        # positions = self.positions[self.times <= until_time]
+        # open_loop_inputs = self.open_loop_inputs[self.times <= until_time]
+        # return Plan(times, positions, open_loop_inputs)
+
+        add_indices = [i for i in range(len(self.times)) if self.times[i] <= until_time]
+        times = [self.times[a] for a in add_indices]
+        positions = [self.positions[a] for a in add_indices]
+        open_loop_inputs = [self.open_loop_inputs[a] for a in add_indices]
+        return Plan(times, positions, open_loop_inputs)        
 
     @classmethod
     def chain_paths(self, *paths):
@@ -312,7 +320,7 @@ class BicycleConfigurationSpace(ConfigurationSpace):
                 return True 
         return False 
             
-    def build_motion_primitives(curr_orientation):
+    def build_motion_primitives(self, curr_orientation):
             motion_primitives = []
             # motion primitives given as a vector [x, y, theta, phi], represents a transformation in state space
             # normalized to 1 and should be multiplied by dt in path planning
@@ -320,11 +328,13 @@ class BicycleConfigurationSpace(ConfigurationSpace):
             equal_weight = (1 / np.sqrt(2))        
 
             # drive forward
-            forward = np.array([np.cos(theta + phi), np.sin(theta + phi), 0, 0])
+            # move 1 in direction of wheels = move cos(t + p) in x, sin(t + p) in y
+            # wheels now point in direction of car, theta increases by phi
+            forward = np.array([np.cos(theta + phi), np.sin(theta + phi), phi, 0])
             motion_primitives.append(forward)
 
             # drive backward
-            backward = np.array([-1 * np.cos(theta + phi), -1 * np.sin(theta + phi), 0, 0])
+            backward = np.array([-1 * np.cos(theta + phi), -1 * np.sin(theta + phi), -phi, 0])
             motion_primitives.append(backward)
 
             # turn left
@@ -336,20 +346,20 @@ class BicycleConfigurationSpace(ConfigurationSpace):
             motion_primitives.append(right)
 
             # drive forward and turn left
-            forward_and_left = np.array([equal_weight * np.cos(theta + phi), equal_weight * np.sin(theta + phi), 0, equal_weight * 1])
+            forward_and_left = np.array([equal_weight * np.cos(theta + phi), equal_weight * np.sin(theta + phi), equal_weight * phi, equal_weight * 1])
             motion_primitives.append(forward_and_left)
 
             # drive forward and turn right
-            forward_and_left = np.array([equal_weight * np.cos(theta + phi), equal_weight * np.sin(theta + phi), 0, equal_weight * -1])
-            motion_primitives.append(forward_and_left)
+            forward_and_right = np.array([equal_weight * np.cos(theta + phi), equal_weight * np.sin(theta + phi), equal_weight * phi, equal_weight * -1])
+            motion_primitives.append(forward_and_right)
 
             # drive backwards and turn left
-            forward_and_left = np.array([-1 * equal_weight * np.cos(theta + phi), -1 * equal_weight * np.sin(theta + phi), 0, equal_weight * 1])
-            motion_primitives.append(forward_and_left)
+            backwards_and_left = np.array([-1 * equal_weight * np.cos(theta + phi), -1 * equal_weight * np.sin(theta + phi), -1 * equal_weight * phi, equal_weight * 1])
+            motion_primitives.append(backwards_and_left)
 
             # drive backwards and turn right
-            forward_and_left = np.array([-1 * equal_weight * np.cos(theta + phi), -1 * equal_weight * np.sin(theta + phi), 0, equal_weight * -1])
-            motion_primitives.append(forward_and_left)
+            backwards_and_right = np.array([-1 * equal_weight * np.cos(theta + phi), -1 * equal_weight * np.sin(theta + phi), -1 * equal_weight * phi, equal_weight * -1])
+            motion_primitives.append(backwards_and_right)
 
             return motion_primitives
 
@@ -387,13 +397,13 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         be good to use for a bicycle model robot. What kinds of motions are at
         our disposal?
 
-        This should return a cofiguration_space.Plan object.
+        This should return a configuration_space.Plan object.
         """
-        x1, y1, theta1, phi1 = c1
-        x2, y2, theta2, phi2 = c2 
+        # x1, y1, theta1, phi1 = c1
+        # x2, y2, theta2, phi2 = c2 
 
-        distance = np.linalg.norm([x2-x1, y2-y1]) # can use dist func
-        total_time = distance #fix this 
+        # distance = np.linalg.norm([x2-x1, y2-y1]) # can use dist func
+        # total_time = distance #fix this 
 
         motion_primitives = self.build_motion_primitives(c1)
         min_dist = float("inf")
@@ -405,8 +415,16 @@ class BicycleConfigurationSpace(ConfigurationSpace):
             if curr_dist < min_dist:
                 min_dist = curr_dist
                 min_index = i
+
+        best_prim = motion_primitives[min_index]
+        best_c1_new = c1 + best_prim * dt
+        # build Plan object, taking same-length times, position, open_loop_input arrays
+        times = [0, dt]
+        positions = [c1, best_c1_new]
+        open_loop_inputs = [best_prim, 0]
+        plan = Plan(times, positions, open_loop_inputs, dt)
         
-        return motion_primitives[min_index] # not right, need return plan object
+        return plan
 
         #Motion Primitives Pseudocode 
 

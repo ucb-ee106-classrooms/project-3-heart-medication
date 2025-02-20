@@ -79,7 +79,10 @@ class RRTPlanner(object):
                 self.graph.add_node(goal, new_config, path_to_goal)
                 self.plan = self.graph.construct_path_to(goal)
                 return self.plan
+            
+        print("self.plan:", self.plan)
         print("Failed to find plan in allotted number of iterations.")
+        # breakpoint()
         return None
 
     def plot_execution(self):
