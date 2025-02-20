@@ -67,6 +67,10 @@ class RRTPlanner(object):
                 continue
             closest_config = self.config_space.nearest_config_to(self.graph.nodes, rand_config)
             path = self.config_space.local_plan(closest_config, rand_config)
+            if (it % 100 == 0):
+                print(f"Path is: positions, {path.positions}, times, {path.times}, inputs, {path.open_loop_inputs} \n")
+                print(f"Distance is: {self.config_space.distance(path.positions[1], rand_config)} \n")
+                print(f"Random point is: {rand_config} \n")
             if self.config_space.check_path_collision(path):
                 continue
             delta_path = path.get_prefix(prefix_time_length)
@@ -82,7 +86,7 @@ class RRTPlanner(object):
             
         print("self.plan:", self.plan)
         print("Failed to find plan in allotted number of iterations.")
-        # breakpoint()
+#        breakpoint()
         return None
 
     def plot_execution(self):

@@ -259,6 +259,7 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         radius r centered at (x, y)
         We assume that the robot is circular and has radius equal to robot_radius
         The state of the robot is defined as (x, y, theta, phi).
+        input_low_lim, input_high_lim given as lists
     """
     def __init__(self, low_lims, high_lims, input_low_lims, input_high_lims, obstacles, robot_radius):
         dim = 4
@@ -287,6 +288,9 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         RRT implementation passes in the goal as an additional argument,
         which can be used to implement a goal-biasing heuristic.
         """
+        # sampling wrong? dist wrong?
+        # doesn't seem to be this function actually
+#        breakpoint()
         x = np.random.uniform(self.low_lims[0], self.high_lims[0])
         y = np.random.uniform(self.low_lims[1], self.high_lims[1])
         theta = np.random.uniform(self.low_lims[2], self.high_lims[2])
@@ -362,6 +366,22 @@ class BicycleConfigurationSpace(ConfigurationSpace):
             motion_primitives.append(backwards_and_right)
 
             return motion_primitives
+    
+    def calc_new_state(self, state, u1, u2, dt):
+        x, y, theta, phi = state
+
+        dxdt = np.cos(theta) * u1
+        dydt = np.sin(theta) * u2
+        dthetadt = (1 / self.robot_length) * np.tan(phi)*u1 
+        dphidt = u2
+
+        new_x = x + dxdt * dt
+        new_y = y + dydt * dt
+        new_theta = theta + dthetadt * dt 
+        new_phi = phi + dphidt * dt
+
+        return np.array([new_x, new_y, new_theta, new_phi])
+
 
     def local_plan(self, c1, c2, dt=0.01):
         """
@@ -399,6 +419,43 @@ class BicycleConfigurationSpace(ConfigurationSpace):
 
         This should return a configuration_space.Plan object.
         """
+        velo_low_lim = self.input_low_lims[0]
+        velo_high_lim = self.input_high_lims[0]
+        steering_rate_low_lim = self.input_low_lims[1]
+        steering_rate_high_lim = self.input_high_lims[1]
+
+        velo_step = 0.1 # a percentage of the velo range to traverse in each step
+        steer_step = 0.1 
+
+        min_dist = float("inf")
+        best_u1 = velo_low_lim
+        best_u2 = steering_rate_low_lim
+
+        curr_u1 = velo_low_lim
+        curr_u2 = steering_rate_low_lim
+        while (curr_u1 <= velo_high_lim):
+            while (curr_u2 <= steering_rate_high_lim):
+                c1_new = self.calc_new_state(c1, curr_u1, curr_u2, dt)
+                dist = self.distance(c1_new, c2)
+                
+                if (dist < min_dist):
+                    best_u1 = curr_u1
+                    best_u2 = curr_u2
+                    min_dist = dist
+
+                curr_u2 = curr_u2 + velo_step * (steering_rate_high_lim - steering_rate_low_lim)
+            curr_u1 = curr_u1 + steer_step * (velo_high_lim - velo_low_lim)
+
+        c1_best = self.calc_new_state(c1, best_u1, best_u2, dt)
+        times = [0, dt]
+        positions = [c1, c1_best]
+        open_loop_inputs = [np.array([best_u1, best_u2]), 0]
+        plan = Plan(times, positions, open_loop_inputs, dt)
+
+#        breakpoint()
+
+        return plan        
+
         # x1, y1, theta1, phi1 = c1
         # x2, y2, theta2, phi2 = c2 
 
@@ -436,7 +493,5 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         #     min distance = motion_primitives
 
         # return plan object with right primitive
-        plan = Plan(times, positions, open_loop_inputs, dt)
-        return plan 
         
 

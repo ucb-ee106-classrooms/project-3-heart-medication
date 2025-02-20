@@ -74,6 +74,8 @@ if __name__ == '__main__':
 
     goal = np.array([args.x, args.y, args.theta, args.phi])
 
+#    breakpoint()
+
     # edit these and planner parameters to tune motion
     config = BicycleConfigurationSpace( xy_low + [-1000, -phi_max],
                                         xy_high + [1000, phi_max],
