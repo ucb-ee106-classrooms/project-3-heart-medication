@@ -14,3 +14,6 @@ roslaunch proj2_pkg init_env.launch map:=empty.yaml start_position:="1 1 0"
 python3 src/proj2_pkg/scripts/main.py -p [planner] -x [x_d] -y [y_d] -theta [theta_d] -phi [phi_d]
 - x, y from [0, 10] to [0, 10]
 - if strange bugs try roscore again then rest of commands
+
+python3 src/proj2_pkg/scripts/main.py -p rrt -x 9 -y 9 -theta 0 -phi 0
+- for use with map2

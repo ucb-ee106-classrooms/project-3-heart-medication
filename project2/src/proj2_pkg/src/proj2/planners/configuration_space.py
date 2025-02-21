@@ -86,7 +86,11 @@ class Plan(object):
                 return path1
             assert path1.dt == path2.dt, "Cannot append paths with different time deltas."
             assert np.allclose(path1.end_position(), path2.start_position()), "Cannot append paths with inconsistent start and end positions."
-            times = np.concatenate((path1.times, path1.times[-1] + path2.times[1:]), axis=0)
+            # breakpoint()
+            ### DISCLAIMER WE EDITED THE BELOW STARTER CODE
+
+            ### NEXT LINE; instead of path1.times[-1] + path2_times[1:0], made list comprehension
+            times = np.concatenate((path1.times, np.array([path1.times[-1] + path2_time for path2_time in path2.times[1:]])), axis=0)
             positions = np.concatenate((path1.positions, path2.positions[1:]), axis=0)
             open_loop_inputs = np.concatenate((path1.open_loop_inputs, path2.open_loop_inputs[1:]), axis=0)
             dt = path1.dt
@@ -273,11 +277,20 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         """
         c1 and c2 should be numpy.ndarrays of size (4,)
         """
-        dx = c1[0] - c2[0]
-        dy = c1[1] - c2[1]
-        dtheta = np.abs(c1[2]-c2[2])
-        dphi = np.abs(c1[3]-c2[3])
-        return np.sqrt(dx**2 + dy**2 + dtheta**2 + dphi**2)
+        distance = np.linalg.norm(np.array([c1[0], c1[1], np.cos(c1[2]), np.sin(c1[2])]) - np.array([c2[0], c2[1], np.cos(c2[2]), np.sin(c2[2])]))
+        
+        # dx = c1[0] - c2[0]
+        # dy = c1[1] - c2[1]
+        
+        # theta1 = c1[2]
+        # theta2 = c2[2]
+        # dtheta_sqrd = (np.cos(theta1) - np.cos(theta2))**2 + (np.sin(theta1) - np.sin(theta2))**2
+        # distance = np.sqrt(dx**2 + dy**2 + dtheta_sqrd)
+
+        #dtheta = np.abs(c1[2]-c2[2])
+        # dphi = np.abs(c1[3]-c2[3])
+        #distance = np.sqrt(dx**2 + dy**2 + dtheta**2 + dphi**2)
+        return distance
 
     def sample_config(self, *args):
         """
@@ -371,7 +384,7 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         x, y, theta, phi = state
 
         dxdt = np.cos(theta) * u1
-        dydt = np.sin(theta) * u2
+        dydt = np.sin(theta) * u1
         dthetadt = (1 / self.robot_length) * np.tan(phi)*u1 
         dphidt = u2
 
@@ -424,32 +437,33 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         steering_rate_low_lim = self.input_low_lims[1]
         steering_rate_high_lim = self.input_high_lims[1]
 
-        velo_step = 0.1 # a percentage of the velo range to traverse in each step
-        steer_step = 0.1 
+        velo_cands = 10 # a percentage of the velo range to traverse in each step
+        steer_cands = 10 
 
         min_dist = float("inf")
         best_u1 = velo_low_lim
         best_u2 = steering_rate_low_lim
 
-        curr_u1 = velo_low_lim
-        curr_u2 = steering_rate_low_lim
-        while (curr_u1 <= velo_high_lim):
-            while (curr_u2 <= steering_rate_high_lim):
+        u1_candidates = np.linspace(velo_low_lim, velo_high_lim, velo_cands)
+        u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
+
+        # u1_candidates = (velo_low_lim+velo_high_lim)//2
+        # u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
+        for curr_u1 in u1_candidates:
+            for curr_u2 in u2_candidates:
                 c1_new = self.calc_new_state(c1, curr_u1, curr_u2, dt)
                 dist = self.distance(c1_new, c2)
                 
                 if (dist < min_dist):
+                    # breakpoint()
                     best_u1 = curr_u1
                     best_u2 = curr_u2
                     min_dist = dist
 
-                curr_u2 = curr_u2 + velo_step * (steering_rate_high_lim - steering_rate_low_lim)
-            curr_u1 = curr_u1 + steer_step * (velo_high_lim - velo_low_lim)
-
         c1_best = self.calc_new_state(c1, best_u1, best_u2, dt)
-        times = [0, dt]
-        positions = [c1, c1_best]
-        open_loop_inputs = [np.array([best_u1, best_u2]), 0]
+        times = np.array([0, dt])
+        positions = np.array([c1, c1_best])
+        open_loop_inputs = np.array([(best_u1, best_u2), (0, 0)])
         plan = Plan(times, positions, open_loop_inputs, dt)
 
 #        breakpoint()
