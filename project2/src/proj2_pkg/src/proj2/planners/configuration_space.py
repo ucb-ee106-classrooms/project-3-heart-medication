@@ -437,10 +437,56 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         steering_rate_low_lim = self.input_low_lims[1]
         steering_rate_high_lim = self.input_high_lims[1]
 
-        velo_cands = 10 # a percentage of the velo range to traverse in each step
+        velo_cands = 10
         steer_cands = 10 
 
         min_dist = float("inf")
+        
+        
+        
+        ### MULTI STEP VERSION
+        best_times = []
+        best_positions = []
+        best_open_loop_inputs = []
+
+        steps = 10
+        u1_candidates = np.linspace(velo_low_lim, velo_high_lim, velo_cands)
+        u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
+
+        for curr_u1 in u1_candidates:
+            for curr_u2 in u2_candidates:
+                times = [0]
+                positions = [np.array(c1)]
+                open_loop_inputs = []
+
+                for i in range(1, steps + 1):
+                    c1_new = self.calc_new_state(c1, curr_u1, curr_u2, dt)
+                    dist = self.distance(c1_new, c2)
+                    times.append(dt * i)
+                    positions.append(c1_new)
+                    open_loop_inputs.append(np.array([curr_u1, curr_u2]))
+
+                open_loop_inputs.append(np.array([0, 0]))
+                
+                if (dist < min_dist):
+                    # breakpoint()
+                    best_times = times
+                    best_positions = positions
+                    best_open_loop_inputs = open_loop_inputs
+                    min_dist = dist
+
+        plan = Plan(best_times, best_positions, best_open_loop_inputs, dt)
+
+#        breakpoint()
+
+        return plan         
+     
+     
+     
+     
+     
+        ### SINGLE STEP VERSION
+
         best_u1 = velo_low_lim
         best_u2 = steering_rate_low_lim
 
@@ -468,7 +514,11 @@ class BicycleConfigurationSpace(ConfigurationSpace):
 
 #        breakpoint()
 
-        return plan        
+        return plan    
+
+
+
+
 
         # x1, y1, theta1, phi1 = c1
         # x2, y2, theta2, phi2 = c2 

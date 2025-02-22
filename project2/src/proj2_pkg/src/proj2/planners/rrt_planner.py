@@ -47,7 +47,7 @@ class RRTPlanner(object):
         self.expand_dist = expand_dist
 
 
-    def plan_to_pose(self, start, goal, dt=0.1, prefix_time_length=800):
+    def plan_to_pose(self, start, goal, dt=1, prefix_time_length=1):
         """
             Uses the RRT algorithm to plan from the start configuration
             to the goal configuration.
@@ -68,7 +68,7 @@ class RRTPlanner(object):
             closest_config = self.config_space.nearest_config_to(self.graph.nodes, rand_config)
             # if (it % 100 == 0):
             #    breakpoint()
-            path = self.config_space.local_plan(closest_config, rand_config)
+            path = self.config_space.local_plan(closest_config, rand_config, dt)
             if (it % 100 == 0):
                 print(f"Path is: positions, {path.positions}, times, {path.times}, inputs, {path.open_loop_inputs} \n")
                 print(f"Distance is: {self.config_space.distance(path.positions[1], rand_config)} \n")
