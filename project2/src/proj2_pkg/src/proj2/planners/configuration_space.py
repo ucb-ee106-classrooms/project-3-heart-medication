@@ -277,8 +277,13 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         """
         c1 and c2 should be numpy.ndarrays of size (4,)
         """
-        distance = np.linalg.norm(np.array([c1[0], c1[1], np.cos(c1[2]), np.sin(c1[2])]) - np.array([c2[0], c2[1], np.cos(c2[2]), np.sin(c2[2])]))
-        
+        dx_sqrd = (c1[0] - c2[0])**2
+        dy_sqrd = (c1[1] - c2[1])**2
+        dtheta_sqrd = (np.cos(c1[2]) - np.cos(c2[2]))**2 + (np.sin(c1[2]) - np.sin(c2[2]))**2
+        # extra terms to play with; often want linear paths
+        c2_theta_phi_close = (np.cos(c2[2]) - np.cos(c2[3]))**2 + (np.sin(c2[2]) - np.sin(c2[3]))**2
+        distance = np.sqrt(dx_sqrd + dy_sqrd + dtheta_sqrd + 10*c2_theta_phi_close)
+
         # dx = c1[0] - c2[0]
         # dy = c1[1] - c2[1]
         
@@ -301,13 +306,22 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         RRT implementation passes in the goal as an additional argument,
         which can be used to implement a goal-biasing heuristic.
         """
-        # sampling wrong? dist wrong?
-        # doesn't seem to be this function actually
 #        breakpoint()
-        x = np.random.uniform(self.low_lims[0], self.high_lims[0])
-        y = np.random.uniform(self.low_lims[1], self.high_lims[1])
-        theta = np.random.uniform(self.low_lims[2], self.high_lims[2])
-        phi = np.random.uniform(self.low_lims[3], self.high_lims[3])
+        
+        # goal-bias
+        goal = args[0]
+        prob = 0.15
+        pt = np.random.uniform()
+        if (pt < prob):
+            x = goal[0]
+            y = goal[1]
+            theta = goal[2]
+            phi = goal[3]
+        else:
+            x = np.random.uniform(self.low_lims[0], self.high_lims[0])
+            y = np.random.uniform(self.low_lims[1], self.high_lims[1])
+            theta = np.random.uniform(self.low_lims[2], self.high_lims[2])
+            phi = np.random.uniform(self.low_lims[3], self.high_lims[3])
         return np.array([x,y,theta,phi])
 
     def check_collision(self, c):
@@ -437,49 +451,50 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         steering_rate_low_lim = self.input_low_lims[1]
         steering_rate_high_lim = self.input_high_lims[1]
 
-        velo_cands = 10
-        steer_cands = 10 
+        # should be odd so we can sample a no-turn and no-steer line?
+        velo_cands = 11
+        steer_cands = 3 
 
         min_dist = float("inf")
         
         
         
-        ### MULTI STEP VERSION
-        best_times = []
-        best_positions = []
-        best_open_loop_inputs = []
+#         ### MULTI STEP VERSION
+#         best_times = []
+#         best_positions = []
+#         best_open_loop_inputs = []
 
-        steps = 10
-        u1_candidates = np.linspace(velo_low_lim, velo_high_lim, velo_cands)
-        u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
+#         steps = 10
+#         u1_candidates = np.linspace(velo_low_lim, velo_high_lim, velo_cands)
+#         u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
 
-        for curr_u1 in u1_candidates:
-            for curr_u2 in u2_candidates:
-                times = [0]
-                positions = [np.array(c1)]
-                open_loop_inputs = []
+#         for curr_u1 in u1_candidates:
+#             for curr_u2 in u2_candidates:
+#                 times = [0]
+#                 positions = [np.array(c1)]
+#                 open_loop_inputs = []
 
-                for i in range(1, steps + 1):
-                    c1_new = self.calc_new_state(c1, curr_u1, curr_u2, dt)
-                    dist = self.distance(c1_new, c2)
-                    times.append(dt * i)
-                    positions.append(c1_new)
-                    open_loop_inputs.append(np.array([curr_u1, curr_u2]))
+#                 for i in range(1, steps + 1):
+#                     c1_new = self.calc_new_state(c1, curr_u1, curr_u2, dt)
+#                     dist = self.distance(c1_new, c2)
+#                     times.append(dt * i)
+#                     positions.append(c1_new)
+#                     open_loop_inputs.append(np.array([curr_u1, curr_u2]))
 
-                open_loop_inputs.append(np.array([0, 0]))
+#                 open_loop_inputs.append(np.array([0, 0]))
                 
-                if (dist < min_dist):
-                    # breakpoint()
-                    best_times = times
-                    best_positions = positions
-                    best_open_loop_inputs = open_loop_inputs
-                    min_dist = dist
+#                 if (dist < min_dist):
+#                     # breakpoint()
+#                     best_times = times
+#                     best_positions = positions
+#                     best_open_loop_inputs = open_loop_inputs
+#                     min_dist = dist
 
-        plan = Plan(best_times, best_positions, best_open_loop_inputs, dt)
+#         plan = Plan(best_times, best_positions, best_open_loop_inputs, dt)
 
-#        breakpoint()
+# #        breakpoint()
 
-        return plan         
+#         return plan         
      
      
      

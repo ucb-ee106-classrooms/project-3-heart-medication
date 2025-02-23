@@ -47,7 +47,7 @@ class RRTPlanner(object):
         self.expand_dist = expand_dist
 
 
-    def plan_to_pose(self, start, goal, dt=1, prefix_time_length=1):
+    def plan_to_pose(self, start, goal, dt=1, prefix_time_length=10):
         """
             Uses the RRT algorithm to plan from the start configuration
             to the goal configuration.

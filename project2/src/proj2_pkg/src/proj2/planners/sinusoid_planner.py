@@ -177,7 +177,21 @@ class SinusoidPlanner():
         :obj: Plan
             See configuration_space.Plan.
         """
-        pass
+        start_state_v = self.state2v(start_state)
+        goal_state_v = self.state2v(goal_state)
+        delta_phi = goal_state_v[1] - start_state_v[1]
+
+        v1=0
+        v2 = delta_phi/delta_t
+
+        path, t = [], t0
+
+        while t<t0 + delta_t:
+            path.append([t,v1,v2])
+            t+=dt
+        return self.v_path_to_u_path(path, start_state, dt)
+
+
 
     def steer_alpha(self, start_state, goal_state, t0 = 0, dt = 0.01, delta_t = 2):
         """
@@ -253,7 +267,59 @@ class SinusoidPlanner():
         :obj: Plan
             See configuration_space.Plan.
         """
-        pass
+        #using alg from the Ed supplement steer_y, 2nd page 
+
+        #1. given initial state yi, goal state yd, delta_t 
+        start_state_v = self.state2v(start_state)
+        goal_state_v = self.state2v(goal_state)
+        delta_y = goal_state_v[3]-start_state_v[3]
+
+
+
+        #2. compute omega = 2pi/delta_t 
+        omega = 2*np.pi/delta_t
+        
+        
+        #3. set arbitary a2 (the initial guess)
+        a2 = 1
+        
+
+        #4. beta integrated up to delta_t
+        #the beta determines how much y displacement results from a given a1, since beta1 depends on the a1, we need to iterate via binary search 
+        # to find the right a1 so that the turtlebot reaches desired yd
+
+        a1_low, a1_high = 0, self.max_u1
+
+        #5. binary search to find a1
+        #mb we can experiment with setting a tolerance threshold
+        tolerance = 1e-3 
+        for _ in range(20):
+            a1 = (a1_low + a1_high)/2
+
+            #compute beta 
+            alpha_fn = lambda t: np.sin(start_state_v[2] + a2/omega * np.sin(2*omega*t))
+            integrand = lambda t: alpha_fn(t) / np.sqrt(1-alpha_fn(t)**2) * a1 * np.sin(omega*t)
+            beta1 = (omega/np.pi) * quad(integrand, 0, delta_t)[0]
+
+            guess_y = (a1*np.pi/omega)*beta1
+            if abs(guess_y - delta_y)<tolerance:
+                break
+            elif guess_y < delta_y:
+                a1_low = a1
+            else:
+                a1_high = a1
+
+
+        #6. use amplitude of sine wave of a1, a2; compute v1 and v2
+        v1 = lambda t: a1*np.sin(omega*t)
+        v2 = lambda t: a2*np.cos(2*omega*t)
+        #gen trajectory 
+
+        path, t = [], t0
+        while t< t0 + delta_t:
+            path.append([t,v1(t-t0), v2(t-t0)])
+            t+=dt
+        return self.v_path_to_u_path(path, start_state, dt)
 
     def state2v(self, state):
         """
@@ -278,7 +344,7 @@ class SinusoidPlanner():
 
         Parameters
         ----------
-        path : :obj:`list` of (float, float, float)
+        path : :obj:`list` of (float, float, float)1740277617.357253
             list of (time, v1, v2) commands
         start_state : numpy.ndarray of shape (4,) [x, y, theta, phi]
             starting state of this trajectory
@@ -317,6 +383,7 @@ class SinusoidPlanner():
         return Plan(np.array(times), np.array(positions), np.array(open_loop_inputs), dt=dt)
 
 def main():
+
     """Use this function if you'd like to test without ROS.
     """
     start = np.array([1, 1, 0, 0]) 
