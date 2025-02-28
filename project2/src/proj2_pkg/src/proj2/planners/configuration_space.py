@@ -279,11 +279,20 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         """
         dx_sqrd = (c1[0] - c2[0])**2
         dy_sqrd = (c1[1] - c2[1])**2
-        dtheta_sqrd = (np.cos(c1[2]) - np.cos(c2[2]))**2 + (np.sin(c1[2]) - np.sin(c2[2]))**2
+        #dtheta_sqrd = (np.cos(c1[2]) - np.cos(c2[2]))**2 + (np.sin(c1[2]) - np.sin(c2[2]))**2
+
+        # transforms theta from degrees to within [0, 2pi] to avoid negative sq rt
+        t1_rads = np.deg2rad(c1[2]) % 2*np.pi
+        t2_rads = np.deg2rad(c2[2]) % 2*np.pi
+
+        dtheta_sqrd = min(np.abs(t1_rads - t2_rads), (2*np.pi) - np.abs(t1_rads - t2_rads))
         # extra terms to play with; often want linear paths
         c2_theta_phi_close = (np.cos(c2[2]) - np.cos(c2[3]))**2 + (np.sin(c2[2]) - np.sin(c2[3]))**2
-        distance = np.sqrt(dx_sqrd + dy_sqrd + dtheta_sqrd + 10*c2_theta_phi_close)
-
+        distance = np.sqrt(dx_sqrd + dy_sqrd + dtheta_sqrd + 0*c2_theta_phi_close)
+        
+        if np.isnan(distance):
+            print(f"distance is NaN! Check for negative terms in sq rt!")
+            breakpoint()
         # dx = c1[0] - c2[0]
         # dy = c1[1] - c2[1]
         
@@ -306,22 +315,49 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         RRT implementation passes in the goal as an additional argument,
         which can be used to implement a goal-biasing heuristic.
         """
+        # default values
+
 #        breakpoint()
-        
-        # goal-bias
+        x_min = self.low_lims[0]
+        x_max = self.high_lims[0]
+        y_min = self.low_lims[1]
+        y_max = self.high_lims[1]
+        theta_min = self.low_lims[2]
+        theta_max = self.high_lims[2]
+        phi_min = self.low_lims[3]
+        phi_max = self.high_lims[3]
+
+        # default values
+        x = np.random.uniform(x_min, x_max)
+        y = np.random.uniform(y_min, y_max)
+        theta = np.random.uniform(theta_min, theta_max)
+        phi = np.random.uniform(phi_min, phi_max)
+
+        # goal-zoom
         goal = args[0]
-        prob = 0.15
+        nodes = args[1]
+        prob = 0.3
+        # list of configs?
         pt = np.random.uniform()
         if (pt < prob):
-            x = goal[0]
-            y = goal[1]
-            theta = goal[2]
-            phi = goal[3]
-        else:
-            x = np.random.uniform(self.low_lims[0], self.high_lims[0])
-            y = np.random.uniform(self.low_lims[1], self.high_lims[1])
-            theta = np.random.uniform(self.low_lims[2], self.high_lims[2])
-            phi = np.random.uniform(self.low_lims[3], self.high_lims[3])
+            # find radius min dist (xi, g)
+            closest = self.nearest_config_to(nodes, goal)
+            r = self.distance(closest, goal)
+            x = np.random.uniform(min(goal[0] - r, x_min), max(x_max, goal[0] + r))
+            y = np.random.uniform(min(goal[1] - r, y_min), max(y_max, goal[1] + r))
+            theta = np.random.uniform(closest[2] - 0.1, closest[2] + 0.1)
+            phi = goal[3]            
+        
+        # # goal-bias
+        # goal = args[0]
+        # prob = 0.15
+        # pt = np.random.uniform()
+        # if (pt < prob):
+        #     x = goal[0]
+        #     y = goal[1]
+        #     theta = goal[2]
+        #     phi = goal[3]
+        
         return np.array([x,y,theta,phi])
 
     def check_collision(self, c):
@@ -451,54 +487,10 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         steering_rate_low_lim = self.input_low_lims[1]
         steering_rate_high_lim = self.input_high_lims[1]
 
-        # should be odd so we can sample a no-turn and no-steer line?
-        velo_cands = 11
-        steer_cands = 3 
+        velo_cands = 9
+        steer_cands = 9 
 
         min_dist = float("inf")
-        
-        
-        
-#         ### MULTI STEP VERSION
-#         best_times = []
-#         best_positions = []
-#         best_open_loop_inputs = []
-
-#         steps = 10
-#         u1_candidates = np.linspace(velo_low_lim, velo_high_lim, velo_cands)
-#         u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
-
-#         for curr_u1 in u1_candidates:
-#             for curr_u2 in u2_candidates:
-#                 times = [0]
-#                 positions = [np.array(c1)]
-#                 open_loop_inputs = []
-
-#                 for i in range(1, steps + 1):
-#                     c1_new = self.calc_new_state(c1, curr_u1, curr_u2, dt)
-#                     dist = self.distance(c1_new, c2)
-#                     times.append(dt * i)
-#                     positions.append(c1_new)
-#                     open_loop_inputs.append(np.array([curr_u1, curr_u2]))
-
-#                 open_loop_inputs.append(np.array([0, 0]))
-                
-#                 if (dist < min_dist):
-#                     # breakpoint()
-#                     best_times = times
-#                     best_positions = positions
-#                     best_open_loop_inputs = open_loop_inputs
-#                     min_dist = dist
-
-#         plan = Plan(best_times, best_positions, best_open_loop_inputs, dt)
-
-# #        breakpoint()
-
-#         return plan         
-     
-     
-     
-     
      
         ### SINGLE STEP VERSION
 
@@ -507,9 +499,10 @@ class BicycleConfigurationSpace(ConfigurationSpace):
 
         u1_candidates = np.linspace(velo_low_lim, velo_high_lim, velo_cands)
         u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
+        # enforce a 0-motion option
+        np.append(u1_candidates, 0)
+        np.append(u2_candidates, 0)
 
-        # u1_candidates = (velo_low_lim+velo_high_lim)//2
-        # u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
         for curr_u1 in u1_candidates:
             for curr_u2 in u2_candidates:
                 c1_new = self.calc_new_state(c1, curr_u1, curr_u2, dt)
@@ -521,10 +514,29 @@ class BicycleConfigurationSpace(ConfigurationSpace):
                     best_u2 = curr_u2
                     min_dist = dist
 
-        c1_best = self.calc_new_state(c1, best_u1, best_u2, dt)
-        times = np.array([0, dt])
-        positions = np.array([c1, c1_best])
-        open_loop_inputs = np.array([(best_u1, best_u2), (0, 0)])
+        steps = 15
+        times = []
+        positions = []
+        open_loop_inputs = []
+        # we can steering u2 along a cosine path u2 = alpha * cos(wt), w set by user
+        # we find best alpha by comparing for one timestep where cos(wt = 1), which may lead to sub-optimal behavior over multiple dt
+        # since cos lies w/i [-1, 1], can use u2 upper/lower bounds as bounds for alpha
+        steer_with_sinusoid = False
+        w = 3
+        for step in range(steps):
+            # at index = 0, have [c1, 0, (best_u1, best_u2)] as desired
+            if steer_with_sinusoid:
+                # steering u2 along cosine path
+                u2_cos_path = best_u2 * np.cos(w * step * dt)
+                curr_poz = self.calc_new_state(c1, best_u1, u2_cos_path, step * dt)
+            else:
+                curr_poz = self.calc_new_state(c1, best_u1, best_u2, step * dt)
+            positions.append(curr_poz)
+            times.append(step * dt)
+            open_loop_inputs.append(np.array([best_u1, best_u2]))
+        
+        # at index = -1, have corr c1, steps - 1 * dt, need overwrite inputs w 0
+        open_loop_inputs[-1] = np.array([0, 0])
         plan = Plan(times, positions, open_loop_inputs, dt)
 
 #        breakpoint()

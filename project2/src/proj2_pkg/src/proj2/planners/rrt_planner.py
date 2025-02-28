@@ -47,7 +47,7 @@ class RRTPlanner(object):
         self.expand_dist = expand_dist
 
 
-    def plan_to_pose(self, start, goal, dt=1, prefix_time_length=10):
+    def plan_to_pose(self, start, goal, dt=0.1, prefix_time_length=1):
         """
             Uses the RRT algorithm to plan from the start configuration
             to the goal configuration.
@@ -62,7 +62,7 @@ class RRTPlanner(object):
             if rospy.is_shutdown():
                 print("Stopping path planner.")
                 break
-            rand_config = self.config_space.sample_config(goal)
+            rand_config = self.config_space.sample_config(goal, self.graph.nodes)
             if self.config_space.check_collision(rand_config):
                 continue
             closest_config = self.config_space.nearest_config_to(self.graph.nodes, rand_config)
@@ -78,7 +78,10 @@ class RRTPlanner(object):
             delta_path = path.get_prefix(prefix_time_length)
             new_config = delta_path.end_position()
             self.graph.add_node(new_config, closest_config, delta_path)
+            if (it %100 == 0):
+                print(f"dist btwn new_config and goal {self.config_space.distance(new_config, goal)} \n new_config: {new_config} \n goal: {goal} \n threshold: {self.expand_dist} \n")
             if self.config_space.distance(new_config, goal) <= self.expand_dist:
+                print(f"entered loop")
                 path_to_goal = self.config_space.local_plan(new_config, goal)
                 if self.config_space.check_path_collision(path_to_goal):
                     continue
@@ -89,7 +92,7 @@ class RRTPlanner(object):
         print("self.plan:", self.plan)
         print("Failed to find plan in allotted number of iterations.")
 #        breakpoint()
-        return None
+        return self.plan
 
     def plot_execution(self):
         """
