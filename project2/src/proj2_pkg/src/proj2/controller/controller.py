@@ -62,7 +62,30 @@ class BicycleModelController(object):
         Returns:
             None. It simply sends the computed command to the robot.
         """
-        self.cmd(open_loop_input)
+        # self.cmd(open_loop_input)
+        Kp = [1.0, 1.0, 0.5, 0.5]
+        Kd = [0.1,0.1,0.05,0.05]
+        current_position = self.state 
+        
+        error = [target_position[i] - current_position[i] for i in range(4)]
+        current_time = rospy.Time.now().to_sec()
+
+        if hasattr(self, "prev_time"):
+            dt = current_time - self.prev_time 
+            dt = max(dt, 1e-6)
+        else:
+            dt = 1e-3
+        
+        if hasattr(self, "prev_error"):
+            error_derivative = [(error[i]-self.prev_error[i])/dt for i in range(4)]
+        else:
+            error_derivative = [0.0]*4
+        control_input = [Kp[i]*error[i]+Kd[i]*error_derivative[i] for i in range(4)]
+        self.cmd(control_input)
+        self.prev_error = error 
+        self.prev_time = current_time 
+        
+
 
 
     def cmd(self, msg):
@@ -85,6 +108,7 @@ class BicycleModelController(object):
         """
         # print("state is", self.state)
         #ISSUE: Initial State is [0,0,0,0]
+        # self.state = np.array([1.0, 1.0, 0.0, 0.0])
         self.state = np.array([msg.x, msg.y, msg.theta, msg.phi])
 
     def shutdown(self):
