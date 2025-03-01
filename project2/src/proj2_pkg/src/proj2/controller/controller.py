@@ -41,6 +41,7 @@ class BicycleModelController(object):
             if t > plan.times[-1]:
                 break
             state, cmd = plan.get(t)
+            #breakpoint()
             self.step_control(state, cmd)
             rate.sleep()
         self.cmd([0, 0])
@@ -62,28 +63,42 @@ class BicycleModelController(object):
         Returns:
             None. It simply sends the computed command to the robot.
         """
-        # self.cmd(open_loop_input)
-        Kp = [1.0, 1.0, 0.5, 0.5]
-        Kd = [0.1,0.1,0.05,0.05]
-        current_position = self.state 
+        #print(f"open_loop_input: {open_loop_input}")
         
-        error = [target_position[i] - current_position[i] for i in range(4)]
-        current_time = rospy.Time.now().to_sec()
+        self.cmd(open_loop_input)
+        
+        
+        ### PD CONTROLLER ###
+        # Kp = [1.0, 1.0, 0.5, 0.5]
+        # Kd = [0.1,0.1,0.05,0.05]
+        # current_position = self.state 
+        # x, y, theta, phi = self.state
+        
+        # error = [target_position[i] - current_position[i] for i in range(4)]
+        # current_time = rospy.Time.now().to_sec()
 
-        if hasattr(self, "prev_time"):
-            dt = current_time - self.prev_time 
-            dt = max(dt, 1e-6)
-        else:
-            dt = 1e-3
+        # if hasattr(self, "prev_time"):
+        #     dt = current_time - self.prev_time 
+        #     dt = max(dt, 1e-6)
+        # else:
+        #     dt = 1e-3
         
-        if hasattr(self, "prev_error"):
-            error_derivative = [(error[i]-self.prev_error[i])/dt for i in range(4)]
-        else:
-            error_derivative = [0.0]*4
-        control_input = [Kp[i]*error[i]+Kd[i]*error_derivative[i] for i in range(4)]
-        self.cmd(control_input)
-        self.prev_error = error 
-        self.prev_time = current_time 
+        # if hasattr(self, "prev_error"):
+        #     error_derivative = [(error[i]-self.prev_error[i])/dt for i in range(4)]
+        # else:
+        #     error_derivative = [0.0]*4
+        # x_dot, y_dot, theta_dot, phi_dot = [Kp[i]*error[i]+Kd[i]*error_derivative[i] for i in range(4)]
+        # u2 = phi_dot
+        # if np.cos(theta) != 0:
+        #     u1 = x_dot / np.cos(theta)
+        # else:
+        #     u1 = y_dot / np.sin(theta)
+        # #u1_3 = (theta_dot * self.l
+        # control_input = np.array([u1, u2])
+
+        # self.cmd(control_input)
+        # self.prev_error = error 
+        # self.prev_time = current_time 
         
 
 

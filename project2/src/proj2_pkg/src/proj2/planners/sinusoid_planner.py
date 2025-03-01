@@ -461,6 +461,7 @@ def main():
     """
     start = np.array([1, 1, 0, 0]) 
     goal = np.array([2, 1.3, 0.7, 0])
+    # goal = np.array([1, 1, 0.3, 0])
     xy_low = [0, 0]
     xy_high = [5, 5]
     phi_max = 0.6
