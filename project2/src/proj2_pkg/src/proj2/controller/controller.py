@@ -83,6 +83,8 @@ class BicycleModelController(object):
         ----------
         msg : :obj:`BicycleStateMsg`
         """
+        # print("state is", self.state)
+        #ISSUE: Initial State is [0,0,0,0]
         self.state = np.array([msg.x, msg.y, msg.theta, msg.phi])
 
     def shutdown(self):

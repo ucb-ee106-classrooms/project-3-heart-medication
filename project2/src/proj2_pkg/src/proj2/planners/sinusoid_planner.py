@@ -269,51 +269,124 @@ class SinusoidPlanner():
         """
         #using alg from the Ed supplement steer_y, 2nd page 
 
+        def f(phi):
+            return 1/(self.l)*np.tan(phi)
+        def g(alpha):
+            return alpha/np.sqrt(1-alpha**2)
+        def phi_fn(t):
+            phi_0 = start_state_v[1]
+            return phi_0 + (a2/(2*omega))*np.sin(2*omega*t)
+        def integrand_alpha(t,a1):
+            return f(phi_fn(t))*a1*np.sin(omega*t)
+        def alpha_fn(t, a1):
+            alpha_0 = start_state_v[2]
+            return alpha_0 + quad(integrand_alpha, 0, t, (a1))[0]
+        def integrand(t, a1):
+            return g(alpha_fn(t, a1))*np.sin(omega*t)
+        def calculate_beta1(a1):
+            return (omega/np.pi)*quad(integrand, 0, delta_t, (a1))[0]
+        def close_enough(guess, goal, threshold = 1e-5):
+            return np.abs(guess-goal)<threshold 
+        
+        ########################################################################################################################################
         #1. given initial state yi, goal state yd, delta_t 
+
         start_state_v = self.state2v(start_state)
         goal_state_v = self.state2v(goal_state)
         delta_y = goal_state_v[3]-start_state_v[3]
-
-
-
-        #2. compute omega = 2pi/delta_t 
         omega = 2*np.pi/delta_t
-        
-        
-        #3. set arbitary a2 (the initial guess)
-        a2 = 1
-        
 
-        #4. beta integrated up to delta_t
-        #the beta determines how much y displacement results from a given a1, since beta1 depends on the a1, we need to iterate via binary search 
-        # to find the right a1 so that the turtlebot reaches desired yd
-
-        a1_low, a1_high = 0, self.max_u1
-
-        #5. binary search to find a1
-        #mb we can experiment with setting a tolerance threshold
-        tolerance = 1e-3 
-        for _ in range(20):
-            a1 = (a1_low + a1_high)/2
-
-            #compute beta 
-            alpha_fn = lambda t: np.sin(start_state_v[2] + a2/omega * np.sin(2*omega*t))
-            integrand = lambda t: alpha_fn(t) / np.sqrt(1-alpha_fn(t)**2) * a1 * np.sin(omega*t)
-            beta1 = (omega/np.pi) * quad(integrand, 0, delta_t)[0]
-
-            guess_y = (a1*np.pi/omega)*beta1
-            if abs(guess_y - delta_y)<tolerance:
+        low, high = -5, 5
+        a1, a2 = (low+high)/2, self.max_u2
+        G = float('inf')
+        count = 0
+        while low<high:
+            a1 = (low+high)/2
+            beta1 = calculate_beta1(a1)
+            G = a1*(np.pi/omega)*beta1
+            if close_enough(G, delta_y, 1e-8):
+                print('found close enough')
                 break
-            elif guess_y < delta_y:
-                a1_low = a1
+            if count>1000:
+                print('too many loops')
+                break 
+
+            if G< delta_y:
+                low =a1
             else:
-                a1_high = a1
+                high = a1
+            count+=1
+        
+        v1 = lambda t: a1*np.sin(omega*(t))
+        v2 = lambda t: a2*np.cos(2*omega*(t))
+
+        
+        # breakpoint()
+        #2. compute omega = 2pi/delta_t 
+        
+        
+        # #3. set arbitary a2 (the initial guess)
+        # a2 = 1
+        
+        # #4. beta integrated up to delta_t
+        # #the beta determines how much y displacement results from a given a1, since beta1 depends on the a1, we need to iterate via binary search 
+        # # to find the right a1 so that the turtlebot reaches desired yd
+
+        # # a1_low, a1_high = 0, self.max_u1
+        # # a1_low, a1_high = 0, self.max_u2
+        # a1_low, a1_high = -5, 5
+
+        # #5. binary search to find a1
+        # #mb we can experiment with setting a tolerance threshold
+        # tolerance = 0.05
+        # # for _ in range(20):
+        # a1 = (a1_low + a1_high)/2
+        # alpha_fn = lambda t: np.sin(start_state_v[2] + a2/(2*omega) * np.sin(2*omega*t))
+        # integrand = lambda t: alpha_fn(t) / np.sqrt(1-alpha_fn(t)**2) * a1 * np.sin(omega*t)
+        # beta1 = (omega/np.pi) * quad(integrand, 0, delta_t)[0]
+
+        # guess_y = (a1*np.pi/omega)*beta1
+        # # a1, guess_y = 1, 1
+        # while abs(guess_y - delta_y)>tolerance:
+        # # for _ in range(20):
+        #     a1 = (a1_low + a1_high)/2
+
+        #     #compute beta 
+        #     alpha_fn = lambda t: np.sin(start_state_v[2] + a2/omega * np.sin(2*omega*t))
+        #     integrand = lambda t: alpha_fn(t) / np.sqrt(1-alpha_fn(t)**2) * a1 * np.sin(omega*t)
+        #     beta1 = (omega/np.pi) * quad(integrand, 0, delta_t)[0]
+
+        #     guess_y = (a1*np.pi/omega)*beta1
+        #     if abs(guess_y - delta_y)<tolerance:
+        #         break
+        #     elif guess_y < delta_y:
+        #         a1_low = a1
+        #     else:
+        #         a1_high = a1
 
 
-        #6. use amplitude of sine wave of a1, a2; compute v1 and v2
-        v1 = lambda t: a1*np.sin(omega*t)
-        v2 = lambda t: a2*np.cos(2*omega*t)
+        # #attempt 2 
+        # # start, end = 0.3, 2
+        # # a1 = (start+end)/2
+
+        # # f = lambda phi: (1/self.l)*np.tan(phi)
+        # # phi_fn = lambda t: (a2/omega)*np.sin(omega*t)+start_state_v[1]
+        # # g = lambda x: x/np.sqrt(1-x**2)
+        # # phi0 = start_state_v[1]
+        # # alpha0 = start_state_v[2]
+        # # G = lambda a1, omega, b1: a1*np.pi/omega * b1
+
+        # # outer_result = quad(lambda tau: g(quad(lambda s: f((a2/2*omega))*np.sin(2*omega*s) + phi0)*a1*np.sin(omega*s))
+
+
+        # #6. use amplitude of sine wave of a1, a2; compute v1 and v2
+        # v1 = lambda t: min(a1, self.max_u1*np.cos(start_state[2]))*np.sin(omega*t)
+
+
+        # v2 = lambda t: a2*np.cos(2*omega*t)
         #gen trajectory 
+
+
 
         path, t = [], t0
         while t< t0 + delta_t:

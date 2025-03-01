@@ -260,7 +260,7 @@ class BicycleConfigurationSpace(ConfigurationSpace):
     """
         The configuration space for a Bicycle modeled robot
         Obstacles should be tuples (x, y, r), representing circles of 
-        radius r centered at (x, y)
+        radius r centered at (x, y)are
         We assume that the robot is circular and has radius equal to robot_radius
         The state of the robot is defined as (x, y, theta, phi).
         input_low_lim, input_high_lim given as lists
@@ -514,7 +514,7 @@ class BicycleConfigurationSpace(ConfigurationSpace):
                     best_u2 = curr_u2
                     min_dist = dist
 
-        steps = 15
+        steps = 20
         times = []
         positions = []
         open_loop_inputs = []
