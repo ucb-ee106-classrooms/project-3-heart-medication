@@ -521,8 +521,8 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         # we can steering u2 along a cosine path u2 = alpha * cos(wt), w set by user
         # we find best alpha by comparing for one timestep where cos(wt = 1), which may lead to sub-optimal behavior over multiple dt
         # since cos lies w/i [-1, 1], can use u2 upper/lower bounds as bounds for alpha
-        steer_with_sinusoid = False
-        w = 3
+        steer_with_sinusoid = True
+        w = 0.1
         for step in range(steps):
             # at index = 0, have [c1, 0, (best_u1, best_u2)] as desired
             if steer_with_sinusoid:
