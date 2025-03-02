@@ -68,6 +68,9 @@ def initial_cond(q_start, q_goal, n):
     u0 = np.zeros((2, n))
 
     # Your code here.
+    for k in range(n):
+        #breakpoint()
+        q0[: , k] = q_start + (k/n)*(q_goal - q_start)
     
     return q0, u0
 

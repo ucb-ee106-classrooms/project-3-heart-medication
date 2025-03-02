@@ -1,0 +1,10 @@
+digraph G {
+"world" -> "map"[label="Broadcaster: /world2map\nAverage rate: 10.189 Hz\nMost recent transform: 1740864671.485 ( -0.024 sec old)\nBuffer length: 4.907 sec\n"];
+"map" -> "map_static"[label="Broadcaster: /stdr_server\nAverage rate: 10.204 Hz\nMost recent transform: 1740864671.383 ( 0.078 sec old)\nBuffer length: 4.900 sec\n"];
+"odom" -> "base_footprint"[label="Broadcaster: /turtlebot3_core\nAverage rate: 29.172 Hz\nMost recent transform: 1740864671.457 ( 0.004 sec old)\nBuffer length: 4.971 sec\n"];
+"map" -> "odom"[label="Broadcaster: /turtlebot3_slam_gmapping\nAverage rate: 20.202 Hz\nMost recent transform: 1740864671.506 ( -0.044 sec old)\nBuffer length: 4.950 sec\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1740864671.462"[ shape=plaintext ] ;
+ }->"world";
+}

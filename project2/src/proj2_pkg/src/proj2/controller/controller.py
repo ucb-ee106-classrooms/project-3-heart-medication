@@ -7,10 +7,12 @@ Author: Amay Saxena
 import numpy as np
 import sys
 
+import tf.transformations
 import tf2_ros
 import tf
 from std_srvs.srv import Empty as EmptySrv
 import rospy
+from geometry_msgs.msg import Twist 
 from proj2_pkg.msg import BicycleCommandMsg, BicycleStateMsg
 from proj2.planners import SinusoidPlanner, RRTPlanner, BicycleConfigurationSpace
 
@@ -19,8 +21,13 @@ class BicycleModelController(object):
         """
         Executes a plan made by the planner
         """
-        self.pub = rospy.Publisher('/bicycle/cmd_vel', BicycleCommandMsg, queue_size=10)
+        
+        # self.pub = rospy.Publisher('/bicycle/cmd_vel', BicycleCommandMsg, queue_size=10)
+        self.pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.sub = rospy.Subscriber('/bicycle/state', BicycleStateMsg, self.subscribe)
+        self.tfBuffer = tf2_ros.Buffer()
+        self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
+        # self.step_control_state = Twist()
         self.state = BicycleStateMsg()
         rospy.on_shutdown(self.shutdown)
 
@@ -38,13 +45,21 @@ class BicycleModelController(object):
         start_t = rospy.Time.now()
         while not rospy.is_shutdown():
             t = (rospy.Time.now() - start_t).to_sec()
+            print(f"t is: {t} \n")
             if t > plan.times[-1]:
                 break
+
+            trans_odom_to_base_link = self.tfBuffer.lookup_transform('base_footprint', 'odom', rospy.Time(), rospy.Duration(5))
+            (roll, pitch, yaw) = tf.transformations.euler_from_quaternion([trans_odom_to_base_link.transform.rotation.x, trans_odom_to_base_link.transform.rotation.y, trans_odom_to_base_link.transform.rotation.z, trans_odom_to_base_link.transform.rotation.w])
+            self.step_control_state = [trans_odom_to_base_link.transform.translation.x, trans_odom_to_base_link.transform.translation.y, yaw,0]
             state, cmd = plan.get(t)
             #breakpoint()
             self.step_control(state, cmd)
+            print(f"state is: {state}")
             rate.sleep()
         self.cmd([0, 0])
+        self.state = state
+        #breakpoint()
 
     def step_control(self, target_position, open_loop_input):
         """Specify a control law. For the grad/EC portion, you may want
@@ -63,16 +78,19 @@ class BicycleModelController(object):
         Returns:
             None. It simply sends the computed command to the robot.
         """
-        #print(f"open_loop_input: {open_loop_input}")
         
-        self.cmd(open_loop_input)
+        ### OPEN LOOP CONTROL ###
+        # print(f"open_loop_input: {open_loop_input}")
+        
+        # self.cmd(open_loop_input)
         
         
-        ### PD CONTROLLER ###
-        # Kp = [1.0, 1.0, 0.5, 0.5]
-        # Kd = [0.1,0.1,0.05,0.05]
-        # current_position = self.state 
-        # x, y, theta, phi = self.state
+        ## PD CONTROLLER ###
+        # Kp = [1.0, 1.0, 1.5, 1.5]
+        # Kd = [0.1,0.1,0.2,0.2]
+        # # current_position = self.state 
+        # current_position = self.step_control_state
+        # x, y, theta, phi = current_position
         
         # error = [target_position[i] - current_position[i] for i in range(4)]
         # current_time = rospy.Time.now().to_sec()
@@ -99,7 +117,21 @@ class BicycleModelController(object):
         # self.cmd(control_input)
         # self.prev_error = error 
         # self.prev_time = current_time 
-        
+
+
+        ### LYAPUNOV BASED DESIGN [16], page 20
+        k1, k2, k3 = 0.2, 1, 1
+        x, y, theta, phi = self.step_control_state
+        x_ref, y_ref, theta_ref, phi_ref = target_position
+        v_ref, w_ref = open_loop_input
+        R = np.array([[np.cos(theta), np.sin(theta), 0], [-np.sin(theta), np.cos(theta), 0], [0,0,1]])
+        delta = np.array([x_ref-x, y_ref-y, theta_ref-theta])
+
+        x_e, y_e, theta_e = R @ delta
+        v_r = v_ref*np.cos(theta_e)+k1*x_e
+        w = w_ref+v_ref*(k2*y_e + k3*np.sin(theta_e))
+        self.cmd(np.array([v_r, w]))
+
 
 
 
@@ -111,7 +143,12 @@ class BicycleModelController(object):
         ----------
         msg : numpy.ndarray
         """
-        self.pub.publish(BicycleCommandMsg(*msg))
+        ## CHANGING MSG TYPE TO TWIST TO WORK ON THE TURTLEBOT
+        cmd = Twist()
+        cmd.linear.x = msg[0]
+        cmd.angular.z = msg[1]
+        self.pub.publish(cmd)
+        # self.pub.publish(BicycleCommandMsg(*msg))
 
     def subscribe(self, msg):
         """

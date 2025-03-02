@@ -97,7 +97,7 @@ if __name__ == '__main__':
     elif args.planner == 'opt':
         planner = OptimizationPlanner(config)
         ## Edit the dt and N arguments to your needs.
-        plan = planner.plan_to_pose(controller.state, goal, dt=0.01, N=1000)
+        plan = planner.plan_to_pose(controller.state, goal, dt=0.03, N=750)
     
     print("Predicted Initial State")
     print(plan.start_position())
@@ -105,7 +105,10 @@ if __name__ == '__main__':
     print(plan.end_position())
 
     planner.plot_execution()
+    #breakpoint()
 
+    ### WHEN WANT TO MOVE TURTLEBOT, UNCOMMENT ###
     controller.execute_plan(plan)
+    #breakpoint()
     print("Final State")
     print(controller.state)

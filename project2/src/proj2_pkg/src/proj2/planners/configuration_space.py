@@ -514,7 +514,7 @@ class BicycleConfigurationSpace(ConfigurationSpace):
                     best_u2 = curr_u2
                     min_dist = dist
 
-        steps = 20
+        steps = 12
         times = []
         positions = []
         open_loop_inputs = []
