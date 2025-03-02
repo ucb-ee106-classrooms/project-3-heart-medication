@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 from contextlib import contextmanager
+import dubins
 
 class Plan(object):
     """Data structure to represent a motion plan. Stores plans in the form of
@@ -482,13 +483,18 @@ class BicycleConfigurationSpace(ConfigurationSpace):
 
         This should return a configuration_space.Plan object.
         """
+        ## Put dubins-sharps path here (so we can avoid breaking robot in sudden turns)
+        # Steering with sinusoids doesn't prevent junction between two steps from being extremely sharp, controller can't keep up
+
+
+
         velo_low_lim = self.input_low_lims[0]
         velo_high_lim = self.input_high_lims[0]
         steering_rate_low_lim = self.input_low_lims[1]
         steering_rate_high_lim = self.input_high_lims[1]
 
         velo_cands = 9
-        steer_cands = 9 
+        steer_cands = 3 
 
         min_dist = float("inf")
      
@@ -497,8 +503,10 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         best_u1 = velo_low_lim
         best_u2 = steering_rate_low_lim
 
-        u1_candidates = np.linspace(velo_low_lim, velo_high_lim, velo_cands)
-        u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
+        #u1_candidates = np.linspace(velo_low_lim, velo_high_lim, velo_cands)
+        u1_candidates = np.array([velo_low_lim / 2, 0, velo_high_lim / 2])
+        #u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
+        u2_candidates = np.array([steering_rate_low_lim / 2, 0 , steering_rate_high_lim / 2])
         # enforce a 0-motion option
         np.append(u1_candidates, 0)
         np.append(u2_candidates, 0)
