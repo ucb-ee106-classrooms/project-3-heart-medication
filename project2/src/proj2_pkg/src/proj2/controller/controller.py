@@ -6,6 +6,7 @@ Author: Amay Saxena
 """
 import numpy as np
 import sys
+import matplotlib.pyplot as plt
 
 import tf.transformations
 import tf2_ros
@@ -43,6 +44,10 @@ class BicycleModelController(object):
             return
         rate = rospy.Rate(int(1 / plan.dt))
         start_t = rospy.Time.now()
+
+        actual_x_states, actual_y_states, actual_theta_states, actual_phi_states  = [], [], [], []
+        desired_x_states, desired_y_states, desired_theta_states, desired_phi_states  = [], [], [], []
+        time_data = []
         while not rospy.is_shutdown():
             t = (rospy.Time.now() - start_t).to_sec()
             print(f"t is: {t} \n")
@@ -55,9 +60,58 @@ class BicycleModelController(object):
             state, cmd = plan.get(t)
             #breakpoint()
             self.step_control(state, cmd)
+
+            #to plot it 
+            time_data.append(t)
+            x, y, theta, phi = self.state
+            actual_x_states.append(x)
+            actual_y_states.append(y)
+            actual_theta_states.append(theta)
+            actual_phi_states.append(phi)
+
+            x_desired, y_desired, theta_desired, phi_desired = state
+            desired_x_states.append(x_desired)
+            desired_y_states.append(y_desired)
+            desired_theta_states.append(theta_desired)
+            desired_phi_states.append(phi_desired)
+
+
             print(f"state is: {state}")
             rate.sleep()
+        
         self.cmd([0, 0])
+
+        #matplotlib
+        fig, axes = plt.subplots(4,1,figsize =(10,12), sharex=True)
+
+        axes[0].plot(time_data, actual_x_states, label="actual x", linestyle='-', marker='o', color='b')
+        axes[0].plot(time_data, desired_x_states, label="desired x", linestyle='-', marker='o', color='r')
+        axes[0].set_ylabel("X position")
+        axes[0].legend()
+        axes[0].grid()
+
+        axes[1].plot(time_data, actual_y_states, label="actual y", linestyle='-', marker='o', color='b')
+        axes[1].plot(time_data, desired_y_states, label="desired y", linestyle='-', marker='o', color='r')
+        axes[1].set_ylabel("Y position")
+        axes[1].legend()
+        axes[1].grid()
+
+        axes[2].plot(time_data, actual_theta_states, label="actual theta", linestyle='-', marker='o', color='b')
+        axes[2].plot(time_data, desired_theta_states, label="desired theta", linestyle='-', marker='o', color='r')
+        axes[2].set_ylabel("theta position")
+        axes[2].legend()
+        axes[2].grid()
+
+        axes[3].plot(time_data, actual_phi_states, label="actual phi", linestyle='-', marker='o', color='b')
+        axes[3].plot(time_data, desired_phi_states, label="desired phi", linestyle='-', marker='o', color='r')
+        axes[3].set_ylabel("phi position")
+        axes[3].legend()
+        axes[3].grid()
+
+
+
+        plt.tight_layout()
+        plt.show()
         # self.state = state
         #breakpoint()
 
@@ -120,7 +174,7 @@ class BicycleModelController(object):
 
 
         ### LYAPUNOV BASED DESIGN [16], page 20
-        k1, k2, k3 = 0.2, 0.1, 0.1
+        k1, k2, k3 = 0.2, 0.5, 0.1
         x, y, theta, phi = self.state
         x_ref, y_ref, theta_ref, phi_ref = target_position
         v_ref, w_ref = open_loop_input

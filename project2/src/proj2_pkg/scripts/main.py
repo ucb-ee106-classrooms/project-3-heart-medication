@@ -97,7 +97,7 @@ if __name__ == '__main__':
     elif args.planner == 'opt':
         planner = OptimizationPlanner(config)
         ## Edit the dt and N arguments to your needs.
-        plan = planner.plan_to_pose(controller.state, goal, dt=0.03, N=750)
+        plan = planner.plan_to_pose(controller.state, goal, dt=0.01, N=2000)
     
     print("Predicted Initial State")
     print(plan.start_position())

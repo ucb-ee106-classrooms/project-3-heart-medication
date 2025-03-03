@@ -11,8 +11,8 @@ roscore
 roslaunch proj2_pkg init_env.launch map:=empty.yaml start_position:="1 1 0"
 - replace empty.yaml w a yaml file in the maps directory to use different terrain
 
-roslaunch proj2_pkg init_env.launch fixed_frame:=base_footprint robot_frame:=odom sim:=false map:=empty.yaml start_position:="1 1 0" turtl
-ebot_command_topic:=/cmd_vel
+roslaunch proj2_pkg init_env.launch fixed_frame:=base_footprint robot_frame:=odom sim:=false map:=empty.yaml start_position:="1 1 0" turtlebot_command_topic:=/cmd_vel
+roslaunch proj2_pkg init_env.launch fixed_frame:=base_footprint robot_frame:=odom sim:=true map:=empty.yaml start_position:="1 1 0" turtlebot_command_topic:=/cmd_vel
 
 python3 src/proj2_pkg/scripts/main.py -p [planner] -x [x_d] -y [y_d] -theta [theta_d] -phi [phi_d]
 - x, y from [0, 10] to [0, 10]
@@ -29,9 +29,9 @@ python3 src/proj2_pkg/scripts/main.py -p opt -x 1 -y 3 -theta 0 -phi 0
 python3 src/proj2_pkg/scripts/main.py -p rrt -x 1 -y 3 -theta 0 -phi 0
 
 Task 1b: (1, 1, 0, 0) -> (1, 1, pi, 0)
-python3 src/proj2_pkg/scripts/main.py -p sin -x 1 -y 1 -theta 180 -phi 0
-python3 src/proj2_pkg/scripts/main.py -p opt -x 1 -y 1 -theta 180 -phi 0
-python3 src/proj2_pkg/scripts/main.py -p rrt -x 1 -y 1 -theta 180 -phi 0
+python3 src/proj2_pkg/scripts/main.py -p sin -x 1 -y 1 -theta 3.14 -phi 0
+python3 src/proj2_pkg/scripts/main.py -p opt -x 1 -y 1 -theta 3.14 -phi 0
+python3 src/proj2_pkg/scripts/main.py -p rrt -x 1 -y 1 -theta 3.14 -phi 0
 
 Task 1c: (1, 1, 0, 0) -> (2, 2.5, 0, 0)
 python3 src/proj2_pkg/scripts/main.py -p sin -x 2 -y 2.5 -theta 0 -phi 0
@@ -54,3 +54,4 @@ ssh [fruitname]@[fruitname]
 roslaunch turtlebot3_bringup turtlebot3_robot.launch --screen
 
 rosrun proj2_pkg scripts/main.py -p opt -x 3 -y 3 -theta 0 -phi 0
+

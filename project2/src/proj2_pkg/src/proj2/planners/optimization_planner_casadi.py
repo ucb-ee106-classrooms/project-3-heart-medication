@@ -175,7 +175,7 @@ def constraints(q, u, q_lb, q_ub, u_lb, u_ub, obs_list, q_start, q_goal, L=0.3, 
             xi=q[0,t]
             yi = q[1,t]
             euclidean_distance = ((xi-obj_x)**2+(yi-obj_y)**2)
-            constraints.append(euclidean_distance>=obj_r**2) # Define the obstacle constraints.
+            constraints.append(euclidean_distance>=(obj_r+ (0.2 * obj_r))**2) # Define the obstacle constraints.
 
     # Initial and final state constraints
     constraints.append(q[:,0] == q_start) # Constraint on start state.

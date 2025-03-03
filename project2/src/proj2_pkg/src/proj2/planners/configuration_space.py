@@ -485,8 +485,48 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         """
         ## Put dubins-sharps path here (so we can avoid breaking robot in sudden turns)
         # Steering with sinusoids doesn't prevent junction between two steps from being extremely sharp, controller can't keep up
+        x, y, theta, phi = c1[0], c1[1], c1[2], c1[3]
+        x_g, y_g, theta_g, phi_g = c2[0], c2[1], c2[2], c2[3]
+        initial = np.array([x, y, theta, phi])
+        goal = np.array([x_g, y_g, theta_g, phi_g])
+        path = dubins.shortest_path(initial, goal, self.robot_length)
+        configs, dump = path.sample_many(dt)
+        config_arr = np.array(configs)
 
+        states = []
+        times = []
+        for i in range(len(config_arr)):
+            config = config_arr[i]
+            curr_state = np.array([config[0], config[1], config[2], phi])
+            
+            states.append(curr_state)
+            times.append(i * dt)
+        states_arr = np.array(states)
+        times_arr = np.array(times)
 
+        controls = np.zeros((len(states_arr), 2))
+        for i in range(len(states_arr) - 1):
+            next_x = states_arr[i + 1][0]
+            curr_x = states_arr[i][0]
+            next_y = states_arr[i + 1][1]
+            curr_y = states_arr[i][1]
+            next_phi = states_arr[i + 1][3]
+            curr_phi = states_arr[i][3]
+
+            delta_x = next_x - curr_x
+            delta_y = next_y - curr_y
+            v = np.sqrt(delta_x ** 2 + delta_y ** 2) / dt
+
+            delta_phi = next_phi - curr_phi
+            omega = delta_phi / dt
+
+            controls[i] = [v, omega]
+        
+        controls[-1] = [0, 0]
+        controls_arr = np.array(controls)
+        plan = Plan(times_arr, states_arr, controls_arr, dt)
+
+        return plan
 
         velo_low_lim = self.input_low_lims[0]
         velo_high_lim = self.input_high_lims[0]
@@ -494,7 +534,7 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         steering_rate_high_lim = self.input_high_lims[1]
 
         velo_cands = 9
-        steer_cands = 3 
+        steer_cands = 9 
 
         min_dist = float("inf")
      
@@ -503,10 +543,10 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         best_u1 = velo_low_lim
         best_u2 = steering_rate_low_lim
 
-        #u1_candidates = np.linspace(velo_low_lim, velo_high_lim, velo_cands)
-        u1_candidates = np.array([velo_low_lim / 2, 0, velo_high_lim / 2])
-        #u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
-        u2_candidates = np.array([steering_rate_low_lim / 2, 0 , steering_rate_high_lim / 2])
+        u1_candidates = np.linspace(velo_low_lim, velo_high_lim, velo_cands)
+        #u1_candidates = np.array([velo_low_lim / 2, 0, velo_high_lim / 2])
+        u2_candidates = np.linspace(steering_rate_low_lim, steering_rate_high_lim, steer_cands)
+        #u2_candidates = np.array([steering_rate_low_lim / 2, 0 , steering_rate_high_lim / 2])
         # enforce a 0-motion option
         np.append(u1_candidates, 0)
         np.append(u2_candidates, 0)
