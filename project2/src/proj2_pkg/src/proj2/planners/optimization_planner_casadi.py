@@ -31,6 +31,7 @@ def bicycle_robot_model(q, u, L=0.3, dt=0.01):
         # OR
         q = vcat([x + y, y, z]) # makes a 3x1 matrix with entries x + y, y, and z.
     """
+<<<<<<< HEAD
     x,y,theta,phi = q[0], q[1], q[2], q[3]
     v, delta = u[0], u[1]
 
@@ -40,6 +41,9 @@ def bicycle_robot_model(q, u, L=0.3, dt=0.01):
     theta_next = theta + 1/L * tan(phi) * v * dt
     phi_next = phi + delta*dt
     return vertcat(x_next, y_next, theta_next, phi_next)
+=======
+    return TODO
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
 def initial_cond(q_start, q_goal, n):
     """
@@ -68,9 +72,12 @@ def initial_cond(q_start, q_goal, n):
     u0 = np.zeros((2, n))
 
     # Your code here.
+<<<<<<< HEAD
     for k in range(n):
         #breakpoint()
         q0[: , k] = q_start + (k/n)*(q_goal - q_start)
+=======
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
     
     return q0, u0
 
@@ -104,12 +111,20 @@ def objective_func(q, u, q_goal, Q, R, P):
         ui = u[:, i]
 
         # Define one term of the summation here: ((q(i) - q_goal)^T * Q * (q(i) - q_goal) + (u(i)^T * R * u(i)))
+<<<<<<< HEAD
         term = ((qi-q_goal).T @ Q @ (qi-q_goal)+(ui.T@R@ui))  
+=======
+        term = TODO  
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
         obj += term
 
     q_last = q[:, n]
     # Define the last term here: (q(N+1) - q_goal)^T * P * (q(N+1) - q_goal)
+<<<<<<< HEAD
     term_last = ((q_last - q_goal).T) @ P @ (q_last-q_goal)
+=======
+    term_last = TODO
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
     obj += term_last
     return obj
 
@@ -145,6 +160,7 @@ def constraints(q, u, q_lb, q_ub, u_lb, u_ub, obs_list, q_start, q_goal, L=0.3, 
     dt is the discretization timestep.
 
     """
+<<<<<<< HEAD
     #q_lb = qmin, q_ub = qmax, u_lb = umin, u_ub = umax
     constraints = []
 
@@ -157,21 +173,39 @@ def constraints(q, u, q_lb, q_ub, u_lb, u_ub, obs_list, q_start, q_goal, L=0.3, 
     # Input constraints
     constraints.extend([u_lb[0] <= u[0, :], u[0, :] <= u_ub[0]])
     constraints.extend([u_lb[1] <= u[1, :], u[1, :] <= u_ub[1]])
+=======
+    constraints = []
+
+    # State constraints
+    constraints.extend([q_lb[0] <= q[0, :], q[0, :] <= q_ub[0]])
+    constraints.extend([                  ,                   ]) # TODO
+    constraints.extend([                  ,                   ]) # TODO
+    constraints.extend([                  ,                   ]) # TODO
+    
+    # Input constraints
+    constraints.extend([                  ,                   ])
+    constraints.extend([                  ,                   ])
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
     # Dynamics constraints
     for t in range(q.shape[1] - 1):
         q_t   = q[:, t]
         q_tp1 = q[:, t + 1]
         u_t   = u[:, t]
+<<<<<<< HEAD
 
         q_next_pred = bicycle_robot_model(q_t,u_t,L,dt)
 
         constraints.append(q_tp1==q_next_pred) # You should use the bicycle_robot_model function here somehow.
+=======
+        constraints.append(TODO) # You should use the bicycle_robot_model function here somehow.
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
     # Obstacle constraints
     for obj in obs_list:
         obj_x, obj_y, obj_r = obj
         for t in range(q.shape[1]):
+<<<<<<< HEAD
             xi=q[0,t]
             yi = q[1,t]
             euclidean_distance = ((xi-obj_x)**2+(yi-obj_y)**2)
@@ -181,6 +215,13 @@ def constraints(q, u, q_lb, q_ub, u_lb, u_ub, obs_list, q_start, q_goal, L=0.3, 
     # Initial and final state constraints
     constraints.append(q[:,0] == q_start) # Constraint on start state.
     constraints.append(q[:,-1] == q_goal) # Constraint on final state.
+=======
+            constraints.append(TODO) # Define the obstacle constraints.
+
+    # Initial and final state constraints
+    constraints.append(TODO) # Constraint on start state.
+    constraints.append(TODO) # Constraint on final state.
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
     return constraints
 

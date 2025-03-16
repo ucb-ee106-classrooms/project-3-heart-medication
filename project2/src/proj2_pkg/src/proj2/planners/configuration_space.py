@@ -8,7 +8,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 from contextlib import contextmanager
+<<<<<<< HEAD
 import dubins
+=======
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
 class Plan(object):
     """Data structure to represent a motion plan. Stores plans in the form of
@@ -56,6 +59,7 @@ class Plan(object):
         """Returns a new plan that is a prefix of this plan up until the
         time until_time.
         """
+<<<<<<< HEAD
         ### BELOW APPEARS TO BE BUGGED - [self.times <= until_time] COMPARES LIST AND INT ###
 
         # times = self.times[self.times <= until_time]
@@ -68,6 +72,12 @@ class Plan(object):
         positions = [self.positions[a] for a in add_indices]
         open_loop_inputs = [self.open_loop_inputs[a] for a in add_indices]
         return Plan(times, positions, open_loop_inputs)        
+=======
+        times = self.times[self.times <= until_time]
+        positions = self.positions[self.times <= until_time]
+        open_loop_inputs = self.open_loop_inputs[self.times <= until_time]
+        return Plan(times, positions, open_loop_inputs)
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
     @classmethod
     def chain_paths(self, *paths):
@@ -87,11 +97,15 @@ class Plan(object):
                 return path1
             assert path1.dt == path2.dt, "Cannot append paths with different time deltas."
             assert np.allclose(path1.end_position(), path2.start_position()), "Cannot append paths with inconsistent start and end positions."
+<<<<<<< HEAD
             # breakpoint()
             ### DISCLAIMER WE EDITED THE BELOW STARTER CODE
 
             ### NEXT LINE; instead of path1.times[-1] + path2_times[1:0], made list comprehension
             times = np.concatenate((path1.times, np.array([path1.times[-1] + path2_time for path2_time in path2.times[1:]])), axis=0)
+=======
+            times = np.concatenate((path1.times, path1.times[-1] + path2.times[1:]), axis=0)
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
             positions = np.concatenate((path1.positions, path2.positions[1:]), axis=0)
             open_loop_inputs = np.concatenate((path1.open_loop_inputs, path2.open_loop_inputs[1:]), axis=0)
             dt = path1.dt
@@ -261,10 +275,16 @@ class BicycleConfigurationSpace(ConfigurationSpace):
     """
         The configuration space for a Bicycle modeled robot
         Obstacles should be tuples (x, y, r), representing circles of 
+<<<<<<< HEAD
         radius r centered at (x, y)are
         We assume that the robot is circular and has radius equal to robot_radius
         The state of the robot is defined as (x, y, theta, phi).
         input_low_lim, input_high_lim given as lists
+=======
+        radius r centered at (x, y)
+        We assume that the robot is circular and has radius equal to robot_radius
+        The state of the robot is defined as (x, y, theta, phi).
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
     """
     def __init__(self, low_lims, high_lims, input_low_lims, input_high_lims, obstacles, robot_radius):
         dim = 4
@@ -278,6 +298,7 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         """
         c1 and c2 should be numpy.ndarrays of size (4,)
         """
+<<<<<<< HEAD
         dx_sqrd = (c1[0] - c2[0])**2
         dy_sqrd = (c1[1] - c2[1])**2
         #dtheta_sqrd = (np.cos(c1[2]) - np.cos(c2[2]))**2 + (np.sin(c1[2]) - np.sin(c2[2]))**2
@@ -306,6 +327,9 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         # dphi = np.abs(c1[3]-c2[3])
         #distance = np.sqrt(dx**2 + dy**2 + dtheta**2 + dphi**2)
         return distance
+=======
+        pass
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
     def sample_config(self, *args):
         """
@@ -316,6 +340,7 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         RRT implementation passes in the goal as an additional argument,
         which can be used to implement a goal-biasing heuristic.
         """
+<<<<<<< HEAD
         # default values
 
 #        breakpoint()
@@ -360,12 +385,16 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         #     phi = goal[3]
         
         return np.array([x,y,theta,phi])
+=======
+        pass
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
     def check_collision(self, c):
         """
         Returns true if a configuration c is in collision
         c should be a numpy.ndarray of size (4,)
         """
+<<<<<<< HEAD
         robot_x, robot_y = c[0], c[1]
         for obs in self.obstacles:
             obs_x, obs_y, obs_r = obs
@@ -373,6 +402,9 @@ class BicycleConfigurationSpace(ConfigurationSpace):
             if dist < (self.robot_radius + obs_r):
                 return True
         return False 
+=======
+        pass
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
     def check_path_collision(self, path):
         """
@@ -383,6 +415,7 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         You should also ensure that the path does not exceed any state bounds,
         and the open loop inputs don't exceed input bounds.
         """
+<<<<<<< HEAD
         for time, position, control_input in path:
             if self.check_collision(position):
                 return True 
@@ -446,6 +479,9 @@ class BicycleConfigurationSpace(ConfigurationSpace):
 
         return np.array([new_x, new_y, new_theta, new_phi])
 
+=======
+        pass
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
     def local_plan(self, c1, c2, dt=0.01):
         """
@@ -481,6 +517,7 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         be good to use for a bicycle model robot. What kinds of motions are at
         our disposal?
 
+<<<<<<< HEAD
         This should return a configuration_space.Plan object.
         """
         ## Put dubins-sharps path here (so we can avoid breaking robot in sudden turns)
@@ -634,3 +671,8 @@ class BicycleConfigurationSpace(ConfigurationSpace):
         # return plan object with right primitive
         
 
+=======
+        This should return a cofiguration_space.Plan object.
+        """
+        pass
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652

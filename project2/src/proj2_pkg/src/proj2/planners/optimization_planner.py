@@ -29,7 +29,11 @@ class OptimizationPlanner(object):
             Args:
                 start: starting configuration of the robot.
                 goal: goal configuration of the robot.
+<<<<<<< HEAD
                 dt: Discretization time step. How much time we would liplan_to_poseke between
+=======
+                dt: Discretization time step. How much time we would like between
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
                     subsequent time-stamps.
                 N: How many waypoints would we like to have in our path from start
                    to goal

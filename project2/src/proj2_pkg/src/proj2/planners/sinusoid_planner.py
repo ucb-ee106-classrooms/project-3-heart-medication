@@ -177,6 +177,7 @@ class SinusoidPlanner():
         :obj: Plan
             See configuration_space.Plan.
         """
+<<<<<<< HEAD
         start_state_v = self.state2v(start_state)
         goal_state_v = self.state2v(goal_state)
         delta_phi = goal_state_v[1] - start_state_v[1]
@@ -192,6 +193,9 @@ class SinusoidPlanner():
         return self.v_path_to_u_path(path, start_state, dt)
 
 
+=======
+        pass
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
     def steer_alpha(self, start_state, goal_state, t0 = 0, dt = 0.01, delta_t = 2):
         """
@@ -267,6 +271,7 @@ class SinusoidPlanner():
         :obj: Plan
             See configuration_space.Plan.
         """
+<<<<<<< HEAD
         #using alg from the Ed supplement steer_y, 2nd page 
 
         def f(phi):
@@ -393,6 +398,9 @@ class SinusoidPlanner():
             path.append([t,v1(t-t0), v2(t-t0)])
             t+=dt
         return self.v_path_to_u_path(path, start_state, dt)
+=======
+        pass
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
     def state2v(self, state):
         """
@@ -417,7 +425,11 @@ class SinusoidPlanner():
 
         Parameters
         ----------
+<<<<<<< HEAD
         path : :obj:`list` of (float, float, float)1740277617.357253
+=======
+        path : :obj:`list` of (float, float, float)
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
             list of (time, v1, v2) commands
         start_state : numpy.ndarray of shape (4,) [x, y, theta, phi]
             starting state of this trajectory
@@ -456,12 +468,18 @@ class SinusoidPlanner():
         return Plan(np.array(times), np.array(positions), np.array(open_loop_inputs), dt=dt)
 
 def main():
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
     """Use this function if you'd like to test without ROS.
     """
     start = np.array([1, 1, 0, 0]) 
     goal = np.array([2, 1.3, 0.7, 0])
+<<<<<<< HEAD
     # goal = np.array([1, 1, 0.3, 0])
+=======
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
     xy_low = [0, 0]
     xy_high = [5, 5]
     phi_max = 0.6

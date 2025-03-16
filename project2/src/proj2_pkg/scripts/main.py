@@ -74,9 +74,12 @@ if __name__ == '__main__':
 
     goal = np.array([args.x, args.y, args.theta, args.phi])
 
+<<<<<<< HEAD
 #    breakpoint()
 
     # edit these and planner parameters to tune motion
+=======
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
     config = BicycleConfigurationSpace( xy_low + [-1000, -phi_max],
                                         xy_high + [1000, phi_max],
                                         [-u1_max, -u2_max],
@@ -105,10 +108,15 @@ if __name__ == '__main__':
     print(plan.end_position())
 
     planner.plot_execution()
+<<<<<<< HEAD
     #breakpoint()
 
     ### WHEN WANT TO MOVE TURTLEBOT, UNCOMMENT ###
     controller.execute_plan(plan)
     #breakpoint()
+=======
+
+    controller.execute_plan(plan)
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
     print("Final State")
     print(controller.state)

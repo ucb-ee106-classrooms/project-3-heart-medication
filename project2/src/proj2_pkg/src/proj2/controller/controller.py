@@ -6,14 +6,21 @@ Author: Amay Saxena
 """
 import numpy as np
 import sys
+<<<<<<< HEAD
 import matplotlib.pyplot as plt
 
 import tf.transformations
+=======
+
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 import tf2_ros
 import tf
 from std_srvs.srv import Empty as EmptySrv
 import rospy
+<<<<<<< HEAD
 from geometry_msgs.msg import Twist 
+=======
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 from proj2_pkg.msg import BicycleCommandMsg, BicycleStateMsg
 from proj2.planners import SinusoidPlanner, RRTPlanner, BicycleConfigurationSpace
 
@@ -22,6 +29,7 @@ class BicycleModelController(object):
         """
         Executes a plan made by the planner
         """
+<<<<<<< HEAD
         
         self.pub = rospy.Publisher('/bicycle/cmd_vel', BicycleCommandMsg, queue_size=10)
         # self.pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -29,6 +37,10 @@ class BicycleModelController(object):
         # self.tfBuffer = tf2_ros.Buffer()
         # self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
         # self.step_control_state = Twist()
+=======
+        self.pub = rospy.Publisher('/bicycle/cmd_vel', BicycleCommandMsg, queue_size=10)
+        self.sub = rospy.Subscriber('/bicycle/state', BicycleStateMsg, self.subscribe)
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
         self.state = BicycleStateMsg()
         rospy.on_shutdown(self.shutdown)
 
@@ -44,6 +56,7 @@ class BicycleModelController(object):
             return
         rate = rospy.Rate(int(1 / plan.dt))
         start_t = rospy.Time.now()
+<<<<<<< HEAD
 
         actual_x_states, actual_y_states, actual_theta_states, actual_phi_states  = [], [], [], []
         desired_x_states, desired_y_states, desired_theta_states, desired_phi_states  = [], [], [], []
@@ -115,6 +128,17 @@ class BicycleModelController(object):
         # self.state = state
         #breakpoint()
 
+=======
+        while not rospy.is_shutdown():
+            t = (rospy.Time.now() - start_t).to_sec()
+            if t > plan.times[-1]:
+                break
+            state, cmd = plan.get(t)
+            self.step_control(state, cmd)
+            rate.sleep()
+        self.cmd([0, 0])
+
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
     def step_control(self, target_position, open_loop_input):
         """Specify a control law. For the grad/EC portion, you may want
         to edit this part to write your own closed loop controller.
@@ -132,6 +156,7 @@ class BicycleModelController(object):
         Returns:
             None. It simply sends the computed command to the robot.
         """
+<<<<<<< HEAD
         
         ### OPEN LOOP CONTROL ###
         # print(f"open_loop_input: {open_loop_input}")
@@ -187,6 +212,9 @@ class BicycleModelController(object):
         self.cmd(np.array([v_r, w]))
 
 
+=======
+        self.cmd(open_loop_input)
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
 
     def cmd(self, msg):
@@ -197,11 +225,14 @@ class BicycleModelController(object):
         ----------
         msg : numpy.ndarray
         """
+<<<<<<< HEAD
         ## CHANGING MSG TYPE TO TWIST TO WORK ON THE TURTLEBOT
         # cmd = Twist()
         # cmd.linear.x = msg[0]
         # cmd.angular.z = msg[1]
         # self.pub.publish(cmd)
+=======
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
         self.pub.publish(BicycleCommandMsg(*msg))
 
     def subscribe(self, msg):
@@ -212,9 +243,12 @@ class BicycleModelController(object):
         ----------
         msg : :obj:`BicycleStateMsg`
         """
+<<<<<<< HEAD
         # print("state is", self.state)
         #ISSUE: Initial State is [0,0,0,0]
         # self.state = np.array([1.0, 1.0, 0.0, 0.0])
+=======
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
         self.state = np.array([msg.x, msg.y, msg.theta, msg.phi])
 
     def shutdown(self):

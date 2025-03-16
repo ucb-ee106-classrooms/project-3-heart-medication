@@ -1,0 +1,12 @@
+roslaunch proj3_pkg unicycle_bringup.launch estimator_type:=dead_reckoning noise_injection:=true freeze_bearing:=false
+- run dead reckoning on turtlebot
+
+roslaunch proj3_pkg unicycle_bringup.launch \
+    estimator_type:=kalman_filter \
+    noise_injection:=true \
+    freeze_bearing:=true
+- run kalman filter on turtlebot
+
+python drone_estimator_node.py --estimator dr
+- run drone dead reckoning (no ROS necessary)
+- this will take a bit to run and will not print anything until it finishes

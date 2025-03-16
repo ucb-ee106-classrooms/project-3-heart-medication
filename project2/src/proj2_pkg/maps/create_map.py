@@ -9,7 +9,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.misc
 from PIL import Image
+<<<<<<< HEAD
 import casadi as cas
+=======
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
 class Obstacle():
 	def __init__(self, center_x, center_y, radius):

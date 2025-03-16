@@ -115,7 +115,11 @@ class BicycleConverter():
                 for i in range(100):
                     try:
                         pose = self.tf_buffer.lookup_transform(
+<<<<<<< HEAD
                             self.fixed_frame, self.robot_frame, rospy.Time(),rospy.Duration(5))
+=======
+                            self.fixed_frame, self.robot_frame, rospy.Time())
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
                         break
                     except (tf2_ros.LookupException,
                             tf2_ros.ConnectivityException,

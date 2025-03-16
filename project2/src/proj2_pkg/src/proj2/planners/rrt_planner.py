@@ -47,7 +47,11 @@ class RRTPlanner(object):
         self.expand_dist = expand_dist
 
 
+<<<<<<< HEAD
     def plan_to_pose(self, start, goal, dt=0.1, prefix_time_length=1):
+=======
+    def plan_to_pose(self, start, goal, dt=0.01, prefix_time_length=1):
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
         """
             Uses the RRT algorithm to plan from the start configuration
             to the goal configuration.
@@ -62,6 +66,7 @@ class RRTPlanner(object):
             if rospy.is_shutdown():
                 print("Stopping path planner.")
                 break
+<<<<<<< HEAD
             rand_config = self.config_space.sample_config(goal, self.graph.nodes)
             if self.config_space.check_collision(rand_config):
                 continue
@@ -73,26 +78,42 @@ class RRTPlanner(object):
                 print(f"Path is: positions, {path.positions}, times, {path.times}, inputs, {path.open_loop_inputs} \n")
                 print(f"Distance is: {self.config_space.distance(path.positions[1], rand_config)} \n")
                 print(f"Random point is: {rand_config} \n")
+=======
+            rand_config = self.config_space.sample_config(goal)
+            if self.config_space.check_collision(rand_config):
+                continue
+            closest_config = self.config_space.nearest_config_to(self.graph.nodes, rand_config)
+            path = self.config_space.local_plan(closest_config, rand_config)
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
             if self.config_space.check_path_collision(path):
                 continue
             delta_path = path.get_prefix(prefix_time_length)
             new_config = delta_path.end_position()
             self.graph.add_node(new_config, closest_config, delta_path)
+<<<<<<< HEAD
             if (it %100 == 0):
                 print(f"dist btwn new_config and goal {self.config_space.distance(new_config, goal)} \n new_config: {new_config} \n goal: {goal} \n threshold: {self.expand_dist} \n")
             if self.config_space.distance(new_config, goal) <= self.expand_dist:
                 print(f"entered loop")
+=======
+            if self.config_space.distance(new_config, goal) <= self.expand_dist:
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
                 path_to_goal = self.config_space.local_plan(new_config, goal)
                 if self.config_space.check_path_collision(path_to_goal):
                     continue
                 self.graph.add_node(goal, new_config, path_to_goal)
                 self.plan = self.graph.construct_path_to(goal)
                 return self.plan
+<<<<<<< HEAD
             
         print("self.plan:", self.plan)
         print("Failed to find plan in allotted number of iterations.")
 #        breakpoint()
         return self.plan
+=======
+        print("Failed to find plan in allotted number of iterations.")
+        return None
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
 
     def plot_execution(self):
         """
@@ -114,6 +135,7 @@ class RRTPlanner(object):
             ax.add_artist(circle)
 
         for path in self.graph.get_edge_paths():
+<<<<<<< HEAD
             ### EDITED STARTER CODE BELOW
 
 
@@ -122,6 +144,10 @@ class RRTPlanner(object):
             # ys = path.positions[:, 1]
             xs = [poz[0] for poz in path.positions]
             ys = [poz[1] for poz in path.positions]
+=======
+            xs = path.positions[:, 0]
+            ys = path.positions[:, 1]
+>>>>>>> 2028cc461d4b5c6f30e8ad0d038d75c211a80652
             ax.plot(xs, ys, color='orange')
 
         if self.plan:
