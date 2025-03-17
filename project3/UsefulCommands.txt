@@ -10,3 +10,6 @@ roslaunch proj3_pkg unicycle_bringup.launch \
 python drone_estimator_node.py --estimator dr
 - run drone dead reckoning (no ROS necessary)
 - this will take a bit to run and will not print anything until it finishes
+
+python drone_estimator_node.py --estimator ekf
+- extended kalman on drone

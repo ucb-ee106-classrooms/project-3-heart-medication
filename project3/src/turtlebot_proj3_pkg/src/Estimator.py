@@ -359,7 +359,7 @@ class KalmanFilter(Estimator):
                 Pt = (I - K_tP1 @ C) @ P_tP1_t
                 timestamp += self.dt
             
-            # TODO: need add back in bearing and timestamp at end
+            # NOTE: need add back in bearing and timestamp at end
             xi_hat = self.unkalman_state_estim(xi_hat, timestamp)
             self.x_hat.append(xi_hat)
 
