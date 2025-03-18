@@ -278,6 +278,9 @@ class ExtendedKalmanFilter(Estimator):
         
         # TODO: tune these
         self.Q = np.identity(n)
+        self.Q[0][0] *= 1 # x weighting
+        self.Q[1][1] *= 1 # z weighting
+        self.Q[2][2] *= 1 # phi weighting
         self.R = np.identity(p)
         # P lives in n by function of Kalman filter: P+1 = A*P*A.T + Q
         self.P_0 = np.identity(n)
@@ -285,33 +288,42 @@ class ExtendedKalmanFilter(Estimator):
 
     # NOTE: per Teja we don't need to use g_lin; taken care of by EKF
     # Meaning, we do not use B -- at least he didn't in his code
+    # TODO: think bug in implementation; getting odd deviation in z and doesn't change even if set A = all 0s
     # noinspection DuplicatedCode
     def update(self, i):
         if len(self.x_hat) > 0: #and self.x_hat[-1][0] < self.x[-1][0]:
             # You may use self.u, self.y, and self.x[0] for estimation
             A, B, C, Q, R, P_0 = self.A, self.B, self.C, self.Q, self.R, self.P_0
-            I = np.identity(self.n) 
+            I = np.identity(self.n)
             
-            xi_hat = np.copy(self.x[0])
-            Pi = np.copy(P_0)
-            for i in range(len(self.x) - 1):
-                ui = self.u[i]
-                x_iP1_i = self.g(xi_hat, ui) 
-                A = self.approx_A(xi_hat, ui)
-                #breakpoint()
-                P_iP1_i = A @ Pi @ A.T + Q
-                C = self.approx_C(x_iP1_i)
-                K_iP1 = P_iP1_i @ C.T @ np.linalg.inv(C @ P_iP1_i @ C.T + R)
-                
-                y_iP1 = self.y[i+1]
-                # typo? Alg doesn't say need pass y_obs to h
-                xi_hat = x_iP1_i + K_iP1 @ (y_iP1 - self.h(x_iP1_i, y_iP1))
-                Pi = (I - K_iP1 @ C) @ P_iP1_i
+            if len(self.x_hat) == 0:
+                self.x_hat.append(np.copy(self.x[0]))
 
-            self.x_hat.append(xi_hat)
+            #breakpoint()
+            i = (len(self.x) - 2)
+
+            xi_hat = np.copy(self.x_hat[i])
+            Pi = np.copy(self.P_t[i])
+            ui = self.u[i]
+            x_iP1_i = self.g(xi_hat, ui) 
+            A_iP1 = self.approx_A(xi_hat, ui)
+            #breakpoint()
+            P_iP1_i = A_iP1 @ Pi @ A_iP1.T + Q
+            C_iP1 = self.approx_C(x_iP1_i)
+            K_iP1 = P_iP1_i @ C_iP1.T @ np.linalg.inv(C_iP1 @ P_iP1_i @ C_iP1.T + R)
+            
+            y_iP1 = self.y[i+1]
+            # no need pass y to h; point of H is to linearize y around point
+            # then we subtract from the measured outputs to see how accurate we are
+            xiP1_hat = x_iP1_i + K_iP1 @ (y_iP1 - self.h(x_iP1_i))
+            P_iP1 = (I - K_iP1 @ C_iP1) @ P_iP1_i
+
+            self.x_hat.append(xiP1_hat)
+            self.P_t.append(P_iP1)
             #breakpoint()
     
-    # TODO: Leaving it here -- difference between linear dynamics and NL confusing
+    #### UNUSED FUNCTION -- the EKF algorithm given linearizes dynamics for us ####
+    # Leaving it here -- difference between linear dynamics and NL confusing
     # linear dynamics appear to need x, u, and point (x_s, u_s)
     # x could be xi_hat, u and u_s could be ui, but not sure about x_s
     # maybe from C, the first-order deriv of measurement model h along x?
@@ -334,10 +346,10 @@ class ExtendedKalmanFilter(Estimator):
 
         return g
 
-    # kinda confused about this; I'm guessing meant to pass x_hat
-    def h(self, state, y_obs):
+    # meant to pass x_hat
+    def h(self, state):
         lx, ly, lz = self.lx, self.ly, self.lz
-        x, z, rel_phi = state[0], state[1], y_obs[1]
+        x, z, rel_phi = state[0], state[1], state[2]
         est_dist = np.sqrt((lx - x)**2 + ly**2 + (lz - z)**2)
         h = np.array([est_dist,
                       rel_phi])
@@ -348,26 +360,30 @@ class ExtendedKalmanFilter(Estimator):
         phi = x[2]
         u1, u2 = u[0], u[1]
         # should be transpose?
-        A = np.array([[1, 0, 0, 0, 0, 0],
-                      [0, 1, 0, 0, 0, 0],
-                      [0, 0, 1, -(u1*dt*np.cos(phi)/m), -(u1*dt*np.sin(phi)/m), 0],
-                      [dt, 0, 0, 1, 0, 0],
-                      [0, dt, 0, 0, 1, 0],
-                      [0, 0, dt, 0, 0, 1]])
-        return A.T
+        A = np.array([[1, 0, 0,                      dt, 0, 0],
+                      [0, 1, 0,                      0, dt, 0],
+                      [0, 0, 1,                      0, 0, dt],
+                      [0, 0, -(u1*dt*np.cos(phi)/m), 1, 0, 0],
+                      [0, 0, -(u1*dt*np.sin(phi)/m), 0, 1, 0],
+                      [0, 0, 0,                      0, 0, 1]])
+        return A
 
     def approx_B(self, x, u):
         dt, m, J = self.dt, self.m, self.J
         phi = x[2]
-        B = np.array([[0, 0, 0, -dt*np.sin(phi)/m, dt*np.cos(phi)/m, 0],
-                      [0, 0, 0, 0, 0, dt/J]])
-        return B.T
+        B = np.array([[0, 0],
+                      [0, 0],
+                      [0, 0],
+                      [-dt*np.sin(phi)/m, dt*np.cos(phi)/m],
+                      [0, dt/J]])
+        return B
     
     def approx_C(self, state):
         lx, ly, lz = self.lx, self.ly, self.lz
         x, z = state[0], state[1]
-        d1 = -(lx - x)/((lx-x)**2 + ly**2 + (lz-z)**2)**0.5
-        d2 = -(lz - z)/((lx-x)**2 + ly**2 + (lz-z)**2)**0.5
+        euc_dist = np.sqrt((lx-x)**2 + ly**2 + (lz-z)**2)
+        d1 = -(lx - x)/euc_dist
+        d2 = -(lz - z)/euc_dist
         #breakpoint()
         C = np.array([[d1, d2, 0, 0, 0, 0],
                       [0, 0, 1, 0, 0, 0]])
