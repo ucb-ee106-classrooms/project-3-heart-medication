@@ -413,40 +413,42 @@ class ExtendedKalmanFilter(Estimator):
         return B
     
     def approx_C(self, state):
-        # lx, ly, lz = self.lx, self.ly, self.lz
-        # x, z = state[0], state[1]
-        # euc_dist = np.sqrt((lx-x)**2 + ly**2 + (lz-z)**2)
-        # d1 = -(lx - x)/euc_dist
-        # d2 = -(lz - z)/euc_dist
-        # #breakpoint()
-        # C = np.array([[d1, d2, 0, 0, 0, 0],
-        #               [0, 0, 1, 0, 0, 0]])
-        # return C
-
-        lx, ly,lz = self.lx, self.ly, self.lz 
-        x_pos, z_pos, phi = state[0], state[1], state[2]
-
-        dx = lx-x_pos 
-        dz = lz-z_pos 
-        r = np.sqrt(dx**2 + dz**2) if np.sqrt(dx**2+dz**2)>1e-5 else 1e-5
-
-        dr_dx = -dx/r
-        dr_dz = -dz/r 
-        dr_dphi = 0 
-
-        dtheta_dx = -dz / (r**2)
-        dtheta_dz = dx/(r**2)
-        dbearing_dx = dtheta_dx 
-        dbearing_dz = dtheta_dz 
-        dbearing_dphi = -1 
-
-        C = np.zeros((2,self.n))
-        C[0,0] = dr_dx 
-        C[0,1] = dr_dz 
-        C[0,2] = dr_dphi 
-
-        C[1,0] = dbearing_dx 
-        C[1,1] = dbearing_dz 
-        C[1,2] = dbearing_dphi 
-
+        lx, ly, lz = self.lx, self.ly, self.lz
+        x, z = state[0], state[1]
+        euc_dist = np.sqrt((lx-x)**2+ (lz-z)**2)
+        d1 = -(lx - x)/euc_dist
+        d2 = -(lz - z)/euc_dist
+        #breakpoint()
+        C = np.array([[d1, d2, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0]])
         return C
+
+        #implementation attempt 2
+
+        # lx, ly,lz = self.lx, self.ly, self.lz 
+        # x_pos, z_pos, phi = state[0], state[1], state[2]
+
+        # dx = lx-x_pos 
+        # dz = lz-z_pos 
+        # r = np.sqrt(dx**2 + dz**2) if np.sqrt(dx**2+dz**2)>1e-5 else 1e-5
+
+        # dr_dx = -dx/r
+        # dr_dz = -dz/r 
+        # dr_dphi = 0 
+
+        # dtheta_dx = -dz / (r**2)
+        # dtheta_dz = dx/(r**2)
+        # dbearing_dx = dtheta_dx 
+        # dbearing_dz = dtheta_dz 
+        # dbearing_dphi = -1 
+
+        # C = np.zeros((2,self.n))
+        # C[0,0] = dr_dx 
+        # C[0,1] = dr_dz 
+        # C[0,2] = dr_dphi 
+
+        # C[1,0] = dbearing_dx 
+        # C[1,1] = dbearing_dz 
+        # C[1,2] = dbearing_dphi 
+
+        # return C
