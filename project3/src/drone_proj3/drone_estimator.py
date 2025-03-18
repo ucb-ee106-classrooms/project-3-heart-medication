@@ -281,19 +281,22 @@ class ExtendedKalmanFilter(Estimator):
         self.R = np.identity(p)
         # P lives in n by function of Kalman filter: P+1 = A*P*A.T + Q
         self.P_0 = np.identity(n)
+        self.P_t = [self.P_0]
 
+    # NOTE: per Teja we don't need to use g_lin; taken care of by EKF
+    # Meaning, we do not use B -- at least he didn't in his code
     # noinspection DuplicatedCode
     def update(self, i):
         if len(self.x_hat) > 0: #and self.x_hat[-1][0] < self.x[-1][0]:
             # You may use self.u, self.y, and self.x[0] for estimation
             A, B, C, Q, R, P_0 = self.A, self.B, self.C, self.Q, self.R, self.P_0
             I = np.identity(self.n) 
-
+            
             xi_hat = np.copy(self.x[0])
             Pi = np.copy(P_0)
             for i in range(len(self.x) - 1):
                 ui = self.u[i]
-                x_iP1_i = self.g(xi_hat, ui)
+                x_iP1_i = self.g(xi_hat, ui) 
                 A = self.approx_A(xi_hat, ui)
                 #breakpoint()
                 P_iP1_i = A @ Pi @ A.T + Q
@@ -306,51 +309,51 @@ class ExtendedKalmanFilter(Estimator):
                 Pi = (I - K_iP1 @ C) @ P_iP1_i
 
             self.x_hat.append(xi_hat)
+            #breakpoint()
     
     # TODO: Leaving it here -- difference between linear dynamics and NL confusing
     # linear dynamics appear to need x, u, and point (x_s, u_s)
     # x could be xi_hat, u and u_s could be ui, but not sure about x_s
     # maybe from C, the first-order deriv of measurement model h along x?
-    def g_lin(self, x_s, u_s):
+    def g_lin(self, x, u, x_s, u_s):
         A_bar = self.approx_A(x_s, u_s)
         B_bar = self.approx_B(x_s, u_s)
         E = self.g(x_s, u_s) - A_bar @ x_s - B_bar @ u_s
-        return A_bar @ x? + B_bar @ u? + E
-
-
+        return A_bar @ x + B_bar @ u + E
 
     def g(self, x, u):
         dt, m, g, J = self.dt, self.m, self.gr, self.J
         x, z, phi, x_v, z_v, phi_v = x[0], x[1], x[2], x[3], x[4], x[5]
         u1, u2 = u[0], u[1]
-        g = np.array(([x + x_v*dt,
+        g = np.array([x + x_v*dt,
                      z + z_v*dt,
                      phi + phi_v*dt,
                      x_v - (u1*dt*np.sin(phi)/m),
                      z_v - g*dt + (u1*dt*np.cos(phi)/m),
-                     phi_v + (u2*dt)/J]))
+                     phi_v + (u2*dt)/J])
 
-        return g.T # lil worried abt this
+        return g
 
     # kinda confused about this; I'm guessing meant to pass x_hat
     def h(self, state, y_obs):
         lx, ly, lz = self.lx, self.ly, self.lz
         x, z, rel_phi = state[0], state[1], y_obs[1]
         est_dist = np.sqrt((lx - x)**2 + ly**2 + (lz - z)**2)
-        h = np.array(([est_dist, rel_phi]))
-        return h.T
+        h = np.array([est_dist,
+                      rel_phi])
+        return h
 
     def approx_A(self, x, u):
         dt, m = self.dt, self.m
         phi = x[2]
         u1, u2 = u[0], u[1]
         # should be transpose?
-        A = np.array(([1, 0, 0, 0, 0, 0],
+        A = np.array([[1, 0, 0, 0, 0, 0],
                       [0, 1, 0, 0, 0, 0],
                       [0, 0, 1, -(u1*dt*np.cos(phi)/m), -(u1*dt*np.sin(phi)/m), 0],
                       [dt, 0, 0, 1, 0, 0],
                       [0, dt, 0, 0, 1, 0],
-                      [0, 0, dt, 0, 0, 1]))
+                      [0, 0, dt, 0, 0, 1]])
         return A.T
 
     def approx_B(self, x, u):
@@ -365,6 +368,7 @@ class ExtendedKalmanFilter(Estimator):
         x, z = state[0], state[1]
         d1 = -(lx - x)/((lx-x)**2 + ly**2 + (lz-z)**2)**0.5
         d2 = -(lz - z)/((lx-x)**2 + ly**2 + (lz-z)**2)**0.5
-        C = np.array(([d1, d2, 0, 0, 0, 0],
-                      [0, 0, 1, 0, 0, 0]))
+        #breakpoint()
+        C = np.array([[d1, d2, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0]])
         return C
