@@ -1,4 +1,5 @@
 import rospy
+import time
 from std_msgs.msg import Float32MultiArray
 import matplotlib.pyplot as plt
 import numpy as np
@@ -276,8 +277,13 @@ class DeadReckoning(Estimator):
     def __init__(self):
         super().__init__()
         self.canvas_title = 'Dead Reckoning'
+        self.total_runtime = 0.0
+        self.num_updates = 0
 
     def update(self, _): # while within if or while invoked by update func?
+        start_time = time.time()
+        
+
         if len(self.x_hat) > 0 and self.x_hat[-1][0] < self.x[-1][0]: # what abt first iter, len(x_hat) sh = 0?
             x0 = self.x[0]
             xi_hat = np.copy(x0) # make copy
@@ -291,6 +297,13 @@ class DeadReckoning(Estimator):
             if rmse is not None: 
                 print(f"Dead Reckoning RMSE: {rmse}")
                 print(f"Dead Reckoning MAE: {mae}")
+        
+        end_time = time.time()
+        runtime = end_time - start_time
+        self.total_runtime+=runtime
+        self.num_updates +=1
+        avg_runtime = self.total_runtime/self.num_updates
+        print(f"DEAD RECKONING AVG COMPUTE TIME: {avg_runtime} seconds")
 
     def calculate_rmse(self):
         errors = np.array(self.x_hat) - np.array(self.x)
