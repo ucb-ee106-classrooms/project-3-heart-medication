@@ -277,11 +277,12 @@ class ExtendedKalmanFilter(Estimator):
         self.C = None
         
         # TODO: tune these
-        self.Q = np.identity(n)
-        self.Q[0][0] *= 1 # x weighting
-        self.Q[1][1] *= 1 # z weighting
+        self.Q = np.identity(n)*1250
+        self.Q[0][0] *= 0.00008 # x weighting #flattens 
+        self.Q[1][1] *= 17 # z weighting
         self.Q[2][2] *= 1 # phi weighting
-        self.R = np.identity(p)
+        self.R = np.identity(p)*0.0004 #smoothing
+        self.R[1][1] = 0.58
         # P lives in n by function of Kalman filter: P+1 = A*P*A.T + Q
         self.P_0 = np.identity(n)
         self.P_t = [self.P_0]
