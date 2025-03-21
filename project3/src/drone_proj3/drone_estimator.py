@@ -281,10 +281,11 @@ class ExtendedKalmanFilter(Estimator):
         self.Q[0][0] *= 0.00008 # x weighting #flattens 
         self.Q[1][1] *= 17 # z weighting
         self.Q[2][2] *= 1 # phi weighting
-        self.R = np.identity(p)*0.0004 #smoothing
-        self.R[1][1] = 0.58
+        self.R = np.identity(p)*0.00048980 #smoothing
+        self.R[1][1] = 1.24
         # P lives in n by function of Kalman filter: P+1 = A*P*A.T + Q
-        self.P_0 = np.identity(n)
+        self.P_0 = np.identity(n)*1.9
+        self.P_0[1][1]*=0.9
         self.P_t = [self.P_0]
 
     # NOTE: per Teja we don't need to use g_lin; taken care of by EKF
