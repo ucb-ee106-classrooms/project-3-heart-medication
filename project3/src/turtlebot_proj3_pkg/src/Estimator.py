@@ -347,7 +347,7 @@ class KalmanFilter(Estimator):
         self.B = np.array(([(r/2)*np.cos(phi), (r/2)*np.cos(phi)],
                            [(r/2)*np.sin(phi), (r/2)*np.sin(phi)],
                            [1, 0],
-                           [0, 1]))
+                           [0, 1]))*self.dt
         self.C = np.array(([1, 0, 0, 0],
                            [0, 1, 0, 0]))
         

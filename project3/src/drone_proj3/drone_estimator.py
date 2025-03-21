@@ -184,6 +184,20 @@ class Estimator:
         dyn_upd = state_dot + dyn_mat @ u
 
         return state + dyn_upd * self.dt
+    
+    def compute_error_metrics(self):
+        if len(self.x) == 0 or len(self.x) != len(self.x_hat):
+            return None, None 
+        errors = []
+        for true_state, est_state in zip(self.x, self.x_hat):
+            true_xy = np.array(true_state[2:4])
+            est_xy = np.array(est_state[2:4])
+            err = np.linalg.norm(true_xy - est_xy)
+            errors.append(err)
+        errors = np.array(errors)
+        rmse = np.sqrt(np.mean(errors**2))
+        mae = np.mean(np.abs(errors))
+        return rmse, mae 
 
 
 class OracleObserver(Estimator):
@@ -329,6 +343,10 @@ class ExtendedKalmanFilter(Estimator):
 
             self.x_hat.append(xiP1_hat)
             self.P_t.append(P_iP1)
+
+            rmse, mae = self.compute_error_metrics()
+            print(f"EKF RMSE: {rmse}")
+            print(f"EKF MAE: {mae}")
             #breakpoint()
     
     #### UNUSED FUNCTION -- the EKF algorithm given linearizes dynamics for us ####
