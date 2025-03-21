@@ -215,6 +215,20 @@ class Estimator:
         #breakpoint()
         dyn_inputs = np.hstack(([self.dt], dyn_in_partial)) # add a dt to the front so matches form of state
         return state + dyn_inputs
+    
+    def compute_error_metrics(self):
+        if len(self.x) == 0 or len(self.x) != len(self.x_hat):
+            return None, None 
+        errors = []
+        for true_state, est_state in zip(self.x, self.x_hat):
+            true_xy = np.array(true_state[2:4])
+            est_xy = np.array(est_state[2:4])
+            err = np.linalg.norm(true_xy - est_xy)
+            errors.append(err)
+        errors = np.array(errors)
+        rmse = np.sqrt(np.mean(errors**2))
+        mae = np.mean(np.abs(errors))
+        return rmse, mae 
 
 class OracleObserver(Estimator):
     """Oracle observer which has access to the true state.
@@ -271,7 +285,24 @@ class DeadReckoning(Estimator):
                 xi_hat = self.calc_unicycle_dynamics(xi_hat, self.u[i])
             self.x_hat.append(xi_hat)
             #breakpoint()
-                
+            # rmse = self.calculate_rmse()
+            # mae = self.calculate_mae()
+            rmse, mae = self.compute_error_metrics()
+            if rmse is not None: 
+                print(f"Dead Reckoning RMSE: {rmse}")
+                print(f"Dead Reckoning MAE: {mae}")
+
+    def calculate_rmse(self):
+        errors = np.array(self.x_hat) - np.array(self.x)
+        mse = np.mean(errors**2, axis=0)
+        rmse = np.sqrt(mse)
+        return rmse 
+
+    def calculate_mae(self):
+        errors = np.abs(np.array(self.x_hat)-np.array(self.x))
+        mae = np.mean(errors, axis=0)
+        return mae  
+            
 
 
 class KalmanFilter(Estimator):
@@ -299,7 +330,9 @@ class KalmanFilter(Estimator):
     def __init__(self):
         super().__init__()
         self.canvas_title = 'Kalman Filter'
+        self.time_step = 0
         self.phid = np.pi / 4
+        self.old_x  = None
         # You may define the A, C, Q, R, and P matrices below.
         # NOTE: we no longer track phi in x, and matrices below ignore timestamp in x
         n, self.n = 4, 4 # dim of x
@@ -308,6 +341,8 @@ class KalmanFilter(Estimator):
         phi, self.phi = np.pi / 4, np.pi / 4 # this is ugly and i hate it
 
         self.A = np.identity(n)
+        # self.A[2][2] = 0
+        # self.A[3][3] = 0
         r = self.r
         self.B = np.array(([(r/2)*np.cos(phi), (r/2)*np.cos(phi)],
                            [(r/2)*np.sin(phi), (r/2)*np.sin(phi)],
@@ -317,10 +352,11 @@ class KalmanFilter(Estimator):
                            [0, 1, 0, 0]))
         
         # TODO: tune these
-        self.Q = np.identity(n)
+        self.Q = np.identity(n)*1e3
+        self.Q[3][3] = 1e5
         self.R = np.identity(p)
         # P lives in n by function of Kalman filter: P+1 = A*P*A.T + Q
-        self.P_0 = np.identity(n)
+        self.old_P = np.identity(n)*1e4
 
     def kalman_state(self, state):
         return state[2:]
@@ -338,30 +374,65 @@ class KalmanFilter(Estimator):
     # noinspection DuplicatedCode
     # noinspection PyPep8Naming
     def update(self, _):
-        if len(self.x_hat) > 0 and self.x_hat[-1][0] < self.x[-1][0]:
+        if len(self.x_hat) > 0 and self.x_hat[-1][0] < self.x[-1][0] and len(self.u)>self.time_step:
             # You may use self.u, self.y, and self.x[0] for estimation
-            A, B, C, Q, R, P_0 = self.A, self.B, self.C, self.Q, self.R, self.P_0
-            I = np.identity(self.n)
+            # A, B, C, Q, R, P_0 = self.A, self.B, self.C, self.Q, self.R, self.P_0
+            # I = np.identity(self.n)
 
-            # deep copy x[0] then toss unnecessary components
-            xi_hat = self.kalman_state(np.copy(self.x[0]))
-            Pt = np.copy(P_0)
-            timestamp = self.x[0][0]
-            for i in range(len(self.x) - 1):
-                ui = self.kalman_inputs(self.u[i])
-                x_iP1_i = A @ xi_hat + B @ ui
-                P_tP1_t = A @ Pt @ A.T + Q
-                K_tP1 = P_tP1_t @ C.T @ np.linalg.inv(C @ P_tP1_t @ C.T + R)
-                y_tP1 = self.kalman_outputs(self.y[i + 1]) 
+            # # deep copy x[0] then toss unnecessary components
+            # xi_hat = self.kalman_state(np.copy(self.x[0]))
+            # Pt = np.copy(P_0)
+            # timestamp = self.x[0][0]
+            # for i in range(len(self.x) - 1):
+            #     ui = self.kalman_inputs(self.u[i])
+            #     x_iP1_i = A @ xi_hat + B @ ui
+            #     P_tP1_t = A @ Pt @ A.T + Q
+            #     K_tP1 = P_tP1_t @ C.T @ np.linalg.inv(C @ P_tP1_t @ C.T + R)
+            #     y_tP1 = self.kalman_outputs(self.y[i + 1]) 
                 
-                # updating xi_hat, Pt here
-                xi_hat = x_iP1_i + K_tP1 @ (y_tP1 - C @ x_iP1_i)
-                Pt = (I - K_tP1 @ C) @ P_tP1_t
-                timestamp += self.dt
+            #     # updating xi_hat, Pt here
+            #     xi_hat = x_iP1_i + K_tP1 @ (y_tP1 - C @ x_iP1_i)
+            #     Pt = (I - K_tP1 @ C) @ P_tP1_t
+            #     timestamp += self.dt
             
-            # NOTE: need add back in bearing and timestamp at end
-            xi_hat = self.unkalman_state_estim(xi_hat, timestamp)
-            self.x_hat.append(xi_hat)
+            # # NOTE: need add back in bearing and timestamp at end
+            # xi_hat = self.unkalman_state_estim(xi_hat, timestamp)
+            # self.x_hat.append(xi_hat)
+            if self.time_step == 0:
+                self.old_x = self.x[0][2:]
+            u = self.u[self.time_step][1:]
+            new_x = self.A @ self.old_x + self.B @ u 
+            self.old_P = self.A @ self.old_P @ self.A.T + self.Q 
+
+            K = self.old_P @ self.C.T @np.linalg.inv(self.C @ self.old_P @ self.C.T + self.R)
+            y = self.y[self.time_step][1:]
+            new_x = new_x + K @ (y-self.C @ new_x)
+            self.old_P = (np.eye(4) - K @ self.C) @ self.old_P
+            term0 = self.u[self.time_step][0]
+            new_x = np.array([term0, self.phid, new_x[0], new_x[1], new_x[2], new_x[3]])
+            print("Updated state", new_x)
+
+            self.x_hat.append(new_x)
+            rmse, mae = self.compute_error_metrics()
+            if rmse is not None:
+                print(f"KF RMSE:{rmse}")
+                print(f"KF MAE: {mae}")
+            # print(f"RMSE: {self.calculate_rmse()}")
+            # print(f"MAE: {self.calculate_mae()}")
+
+            self.old_x = new_x[2:]
+            self.time_step +=1 
+    
+    def calculate_rmse(self):
+        errors = np.array(self.x_hat) - np.array(self.x)
+        mse = np.mean(errors**2, axis=0)
+        rmse = np.sqrt(mse)
+        return rmse 
+
+    def calculate_mae(self):
+        errors = np.abs(np.array(self.x_hat)-np.array(self.x))
+        mae = np.mean(errors, axis=0)
+        return mae 
 
 # noinspection PyPep8Naming
 class ExtendedKalmanFilter(Estimator):

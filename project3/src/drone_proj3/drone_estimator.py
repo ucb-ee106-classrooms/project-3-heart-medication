@@ -288,6 +288,13 @@ class ExtendedKalmanFilter(Estimator):
         self.P_0[1][1]*=0.9
         self.P_t = [self.P_0]
 
+        # self.A = np.eye(6)
+        # self.Q = np.diag([1,1,1,0.1, 0.1, 0.1])
+        # self.R = np.diag([30,10])
+        # self.P_0 = np.diag([5,5,5,1,1,1])
+        # self.P_t = [self.P_0]
+
+
     # NOTE: per Teja we don't need to use g_lin; taken care of by EKF
     # Meaning, we do not use B -- at least he didn't in his code
     # TODO: think bug in implementation; getting odd deviation in z and doesn't change even if set A = all 0s
