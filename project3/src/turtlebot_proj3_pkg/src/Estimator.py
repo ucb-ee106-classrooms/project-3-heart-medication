@@ -218,8 +218,8 @@ class Estimator:
         return state + dyn_inputs
     
     def compute_error_metrics(self):
-        if len(self.x) == 0 or len(self.x) != len(self.x_hat):
-            return None, None 
+        # if len(self.x) == 0 or len(self.x) != len(self.x_hat):
+        #     return None, None 
         errors = []
         for true_state, est_state in zip(self.x, self.x_hat):
             true_xy = np.array(true_state[2:4])
@@ -294,9 +294,8 @@ class DeadReckoning(Estimator):
             # rmse = self.calculate_rmse()
             # mae = self.calculate_mae()
             rmse, mae = self.compute_error_metrics()
-            if rmse is not None: 
-                print(f"Dead Reckoning (Turtlebot) RMSE: {rmse}")
-                print(f"Dead Reckoning (Turtlebot) MAE: {mae}")
+            print(f"Dead Reckoning (Turtlebot) RMSE: {rmse}")
+            print(f"Dead Reckoning (Turtlebot) MAE: {mae}")
         
             end_time = time.time()
             runtime = end_time - start_time
