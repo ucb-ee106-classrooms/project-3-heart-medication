@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 plt.rcParams['font.family'] = ['Arial']
 plt.rcParams['font.size'] = 14
+import time as time 
 
 
 class Estimator:
@@ -166,6 +167,24 @@ class Estimator:
         ax.set_xlim([min(min(x) * 1.05, xlim[0]), max(max(x) * 1.05, xlim[1])])
         ylim = ax.get_ylim()
         ax.set_ylim([min(min(y) * 1.05, ylim[0]), max(max(y) * 1.05, ylim[1])])
+    
+    def update_dynamics(self, state, u):
+        x_velo, z_velo, phi_velo = state[3:]
+        phi = state[2]
+        m, gr, J = self.m, self.gr, self.J
+
+        dyn_mat = np.array(([0, 0],
+                            [0, 0],
+                            [0, 0],
+                            [-np.sin(phi)/m, 0],
+                            [np.cos(phi)/m, 0],
+                            [0, 1/J]))
+
+        state_dot = np.array(([x_velo, z_velo, phi_velo, 0, -gr, 0]))
+        
+        dyn_upd = state_dot + dyn_mat @ u
+
+        return state + dyn_upd * self.dt
 
 class OracleObserver(Estimator):
     """Oracle observer which has access to the true state.
@@ -234,12 +253,14 @@ class DeadReckoning(Estimator):
 
             # new_state = np.array([new_x, new_z, new_phi, new_vx, new_vz, new_omega])
             # self.x_hat.append(new_state)
-            # xi_hat = np.copy(self.x[0])
-            # for i in range(len(self.x)):
-            #     xi_hat = self.update_dynamics(xi_hat, self.u[i])
+
+            start_time 
+            xi_hat = np.copy(self.x[0])
+            for i in range(len(self.x)):
+                xi_hat = self.update_dynamics(xi_hat, self.u[i])
             
-            # self.x_hat.append(xi_hat)
-            pass
+            self.x_hat.append(xi_hat)
+            
 
 # noinspection PyPep8Naming
 class ExtendedKalmanFilter(Estimator):
