@@ -295,15 +295,15 @@ class DeadReckoning(Estimator):
             # mae = self.calculate_mae()
             rmse, mae = self.compute_error_metrics()
             if rmse is not None: 
-                print(f"Dead Reckoning RMSE: {rmse}")
-                print(f"Dead Reckoning MAE: {mae}")
+                print(f"Dead Reckoning (Turtlebot) RMSE: {rmse}")
+                print(f"Dead Reckoning (Turtlebot) MAE: {mae}")
         
-        end_time = time.time()
-        runtime = end_time - start_time
-        self.total_runtime+=runtime
-        self.num_updates +=1
-        avg_runtime = self.total_runtime/self.num_updates
-        print(f"DEAD RECKONING AVG COMPUTE TIME: {avg_runtime} seconds")
+            end_time = time.time()
+            runtime = end_time - start_time
+            self.total_runtime+=runtime
+            self.num_updates+=1
+            avg_runtime = self.total_runtime/(self.num_updates)
+            print(f"DEAD RECKONING TURTLEBOT AVG COMPUTE TIME: {avg_runtime} seconds")
 
     def calculate_rmse(self):
         errors = np.array(self.x_hat) - np.array(self.x)
@@ -346,6 +346,7 @@ class KalmanFilter(Estimator):
         self.time_step = 0
         self.phid = np.pi / 4
         self.old_x  = None
+        self.total_runtime = 0
         # You may define the A, C, Q, R, and P matrices below.
         # NOTE: we no longer track phi in x, and matrices below ignore timestamp in x
         n, self.n = 4, 4 # dim of x
@@ -388,6 +389,7 @@ class KalmanFilter(Estimator):
     # noinspection PyPep8Naming
     def update(self, _):
         if len(self.x_hat) > 0 and self.x_hat[-1][0] < self.x[-1][0] and len(self.u)>self.time_step:
+            start_time = time.time()
             # You may use self.u, self.y, and self.x[0] for estimation
             # A, B, C, Q, R, P_0 = self.A, self.B, self.C, self.Q, self.R, self.P_0
             # I = np.identity(self.n)
@@ -426,15 +428,23 @@ class KalmanFilter(Estimator):
             print("Updated state", new_x)
 
             self.x_hat.append(new_x)
+            self.old_x = new_x[2:]
+            self.time_step +=1 
+
+            end_time = time.time()
+            runtime = end_time - start_time
+            self.total_runtime+=runtime
+            avg_runtime = self.total_runtime/(len(self.x_hat)-1)
+
+
+
             rmse, mae = self.compute_error_metrics()
             if rmse is not None:
                 print(f"KF RMSE:{rmse}")
                 print(f"KF MAE: {mae}")
             # print(f"RMSE: {self.calculate_rmse()}")
             # print(f"MAE: {self.calculate_mae()}")
-
-            self.old_x = new_x[2:]
-            self.time_step +=1 
+            print(f"KF TURTLEBOT AVG COMPUTE TIME: {avg_runtime} seconds")
     
     def calculate_rmse(self):
         errors = np.array(self.x_hat) - np.array(self.x)

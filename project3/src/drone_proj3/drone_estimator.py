@@ -185,6 +185,19 @@ class Estimator:
         dyn_upd = state_dot + dyn_mat @ u
 
         return state + dyn_upd * self.dt
+    def compute_error_metrics(self):
+        if len(self.x) == 0 or len(self.x) != len(self.x_hat):
+            return None, None 
+        errors = []
+        for true_state, est_state in zip(self.x, self.x_hat):
+            true_xy = np.array(true_state[2:4])
+            est_xy = np.array(est_state[2:4])
+            err = np.linalg.norm(true_xy - est_xy)
+            errors.append(err)
+        errors = np.array(errors)
+        rmse = np.sqrt(np.mean(errors**2))
+        mae = np.mean(np.abs(errors))
+        return rmse, mae 
 
 class OracleObserver(Estimator):
     """Oracle observer which has access to the true state.
@@ -224,42 +237,56 @@ class DeadReckoning(Estimator):
     def __init__(self, is_noisy=False):
         super().__init__(is_noisy)
         self.canvas_title = 'Dead Reckoning'
+        self.total_runtime = 0.0
+        self.num_updates = 0
 
     def update(self, _):
+        start_time = time.time()
         if len(self.x_hat) > 0:
             # TODO: Your implementation goes here!
             # You may ONLY use self.u and self.x[0] for estimation
             # raise NotImplementedError
-            # last_state = self.x_hat[-1]
-            # u = self.u[_]
-            # x = last_state[0]
-            # z = last_state[1]
-            # phi = last_state[2]
-            # vx = last_state[3]
-            # vz = last_state[4]
-            # omega = last_state[5]
+            last_state = self.x_hat[-1]
+            u = self.u[_]
+            x = last_state[0]
+            z = last_state[1]
+            phi = last_state[2]
+            vx = last_state[3]
+            vz = last_state[4]
+            omega = last_state[5]
 
-            # u1 = u[0]
-            # u2 = u[1]
+            u1 = u[0]
+            u2 = u[1]
 
-            # new_x = x + vx*self.dt 
-            # new_z = x + vz*self.dt 
+            new_x = x + vx*self.dt 
+            new_z = z + vz*self.dt 
 
-            # new_phi = phi+omega *self.dt 
-            # new_vx = vx + (-u1*np.sin(phi)/self.m)*self.dt 
-            # new_vz = vz + (-self.gr + u1 * np.cos(phi)/self.m)*self.dt
+            new_phi = phi+omega *self.dt 
+            new_vx = vx + (-u1*np.sin(phi)/self.m)*self.dt 
+            new_vz = vz + (-self.gr + u1 * np.cos(phi)/self.m)*self.dt
 
-            # new_omega = omega + (u2/self.J)*self.dt
+            new_omega = omega + (u2/self.J)*self.dt
 
-            # new_state = np.array([new_x, new_z, new_phi, new_vx, new_vz, new_omega])
-            # self.x_hat.append(new_state)
+            new_state = np.array([new_x, new_z, new_phi, new_vx, new_vz, new_omega])
+            self.x_hat.append(new_state)
 
-            start_time 
-            xi_hat = np.copy(self.x[0])
-            for i in range(len(self.x)):
-                xi_hat = self.update_dynamics(xi_hat, self.u[i])
             
-            self.x_hat.append(xi_hat)
+            # xi_hat = np.copy(self.x[0])
+            # for i in range(len(self.x)):
+            #     xi_hat = self.update_dynamics(xi_hat, self.u[i])
+            
+            # self.x_hat.append(xi_hat)
+
+        end_time = time.time()
+        runtime = end_time - start_time
+        self.total_runtime+=runtime
+        avg_runtime = self.total_runtime/(len(self.x_hat)-1)
+        print(f"DEAD RECKONING DRONE AVG COMPUTE TIME: {avg_runtime} seconds")
+
+        rmse, mae = self.compute_error_metrics()
+        if rmse is not None: 
+            print(f"Dead Reckoning RMSE (Drone): {rmse}")
+            print(f"Dead Reckoning MAE (Drone): {mae}")
             
 
 # noinspection PyPep8Naming
@@ -299,11 +326,13 @@ class ExtendedKalmanFilter(Estimator):
         self.Q = np.eye(6)*0.1
         self.R = np.eye(2)*3 
         self.P = np.eye(6)*2
+        self.total_runtime = 0
 
     # noinspection DuplicatedCode
     def update(self, i):
         # if i<len(self.y) and len(self.x_hat) > 0: #and self.x_hat[-1][0] < self.x[-1][0]:
         if i<len(self.y):
+            start_time = time.time()
             # TODO: Your implementation goes here!
             # You may use self.u, self.y, and self.x[0] for estimation
             # raise NotImplementedError
@@ -319,6 +348,19 @@ class ExtendedKalmanFilter(Estimator):
             I = np.eye(len(self.P))
             self.P = (I-K@C) @ P_pred 
             self.x_hat.append(x_updated)
+
+            end_time = time.time()
+            runtime = end_time - start_time
+            self.total_runtime+=runtime
+            avg_runtime = self.total_runtime/(len(self.x_hat)-1)
+            print(f"EKF DRONE AVG COMPUTE TIME: {avg_runtime} seconds")
+
+            
+
+            rmse, mae = self.compute_error_metrics()
+            if rmse is not None: 
+                print(f"EKF RMSE (Drone): {rmse}")
+                print(f"EKF MAE (Drone): {mae}")
 
     def g(self, x, u):
         # raise NotImplementedError
