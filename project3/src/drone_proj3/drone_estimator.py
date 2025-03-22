@@ -167,39 +167,6 @@ class Estimator:
         ylim = ax.get_ylim()
         ax.set_ylim([min(min(y) * 1.05, ylim[0]), max(max(y) * 1.05, ylim[1])])
 
-    def update_dynamics(self, state, u):
-        x_velo, z_velo, phi_velo = state[3:]
-        phi = state[2]
-        m, gr, J = self.m, self.gr, self.J
-
-        dyn_mat = np.array(([0, 0],
-                            [0, 0],
-                            [0, 0],
-                            [-np.sin(phi)/m, 0],
-                            [np.cos(phi)/m, 0],
-                            [0, 1/J]))
-
-        state_dot = np.array(([x_velo, z_velo, phi_velo, 0, -gr, 0]))
-        
-        dyn_upd = state_dot + dyn_mat @ u
-
-        return state + dyn_upd * self.dt
-    
-    def compute_error_metrics(self):
-        if len(self.x) == 0 or len(self.x) != len(self.x_hat):
-            return None, None 
-        errors = []
-        for true_state, est_state in zip(self.x, self.x_hat):
-            true_xy = np.array(true_state[2:4])
-            est_xy = np.array(est_state[2:4])
-            err = np.linalg.norm(true_xy - est_xy)
-            errors.append(err)
-        errors = np.array(errors)
-        rmse = np.sqrt(np.mean(errors**2))
-        mae = np.mean(np.abs(errors))
-        return rmse, mae 
-
-
 class OracleObserver(Estimator):
     """Oracle observer which has access to the true state.
 
@@ -241,11 +208,38 @@ class DeadReckoning(Estimator):
 
     def update(self, _):
         if len(self.x_hat) > 0:
-            xi_hat = np.copy(self.x[0])
-            for i in range(len(self.x)):
-                xi_hat = self.update_dynamics(xi_hat, self.u[i])
+            # TODO: Your implementation goes here!
+            # You may ONLY use self.u and self.x[0] for estimation
+            # raise NotImplementedError
+            # last_state = self.x_hat[-1]
+            # u = self.u[_]
+            # x = last_state[0]
+            # z = last_state[1]
+            # phi = last_state[2]
+            # vx = last_state[3]
+            # vz = last_state[4]
+            # omega = last_state[5]
+
+            # u1 = u[0]
+            # u2 = u[1]
+
+            # new_x = x + vx*self.dt 
+            # new_z = x + vz*self.dt 
+
+            # new_phi = phi+omega *self.dt 
+            # new_vx = vx + (-u1*np.sin(phi)/self.m)*self.dt 
+            # new_vz = vz + (-self.gr + u1 * np.cos(phi)/self.m)*self.dt
+
+            # new_omega = omega + (u2/self.J)*self.dt
+
+            # new_state = np.array([new_x, new_z, new_phi, new_vx, new_vz, new_omega])
+            # self.x_hat.append(new_state)
+            # xi_hat = np.copy(self.x[0])
+            # for i in range(len(self.x)):
+            #     xi_hat = self.update_dynamics(xi_hat, self.u[i])
             
-            self.x_hat.append(xi_hat)
+            # self.x_hat.append(xi_hat)
+            pass
 
 # noinspection PyPep8Naming
 class ExtendedKalmanFilter(Estimator):
@@ -276,142 +270,87 @@ class ExtendedKalmanFilter(Estimator):
     def __init__(self, is_noisy=False):
         super().__init__(is_noisy)
         self.canvas_title = 'Extended Kalman Filter'
-        # hardcoded landmark position
-        self.lx = 0
-        self.ly = 5
-        self.lz = 5
-        # You may define the A, C, Q, R, and P matrices below.
-        n, self.n = 6, 6 # dim of x
-        p, self.p = 2, 2 # dim of outputs
-        m, self.m = 2, 2 # dim of inputs
-
-        # TODO: these are closed-form partial derivative matrices, need calc
+        # TODO: Your implementation goes here!
+        # You may define the Q, R, and P matrices below.
         self.A = None
         self.B = None
         self.C = None
-        
-        # TODO: tune these
-        self.Q = np.identity(n)*1250
-        self.Q[0][0] *= 0.00008 # x weighting #flattens 
-        self.Q[1][1] *= 17 # z weighting
-        self.Q[2][2] *= 1 # phi weighting
-        self.R = np.identity(p)*0.00048980 #smoothing
-        self.R[1][1] = 1.24
-        # P lives in n by function of Kalman filter: P+1 = A*P*A.T + Q
-        self.P_0 = np.identity(n)*1.9
-        self.P_0[1][1]*=0.9
-        self.P_t = [self.P_0]
+        self.Q = np.eye(6)*0.1
+        self.R = np.eye(2)*3 
+        self.P = np.eye(6)*2
 
-        # self.A = np.eye(6)
-        # self.Q = np.diag([1,1,1,0.1, 0.1, 0.1])
-        # self.R = np.diag([30,10])
-        # self.P_0 = np.diag([5,5,5,1,1,1])
-        # self.P_t = [self.P_0]
-
-
-    # NOTE: per Teja we don't need to use g_lin; taken care of by EKF
-    # Meaning, we do not use B -- at least he didn't in his code
-    # TODO: think bug in implementation; getting odd deviation in z and doesn't change even if set A = all 0s
     # noinspection DuplicatedCode
     def update(self, i):
-        if len(self.x_hat) > 0: #and self.x_hat[-1][0] < self.x[-1][0]:
+        # if i<len(self.y) and len(self.x_hat) > 0: #and self.x_hat[-1][0] < self.x[-1][0]:
+        if i<len(self.y):
+            # TODO: Your implementation goes here!
             # You may use self.u, self.y, and self.x[0] for estimation
-            A, B, C, Q, R, P_0 = self.A, self.B, self.C, self.Q, self.R, self.P_0
-            I = np.identity(self.n)
-            
-            if len(self.x_hat) == 0:
-                self.x_hat.append(np.copy(self.x[0]))
+            # raise NotImplementedError
+            last_state = self.x_hat[-1]
+            u = self.u[i-1]
+            x_pred = self.g(last_state,u)
+            A = self.approx_A(last_state, u)
+            P_pred = A @ self.P @ A.T + self.Q
+            C = self.approx_C(x_pred)
+            K = P_pred @ C.T @ np.linalg.inv(C @ P_pred @ C.T + self.R)
+            x_updated = x_pred + K@ (self.y[i] - self.h(x_pred))
 
-            #breakpoint()
-            i = (len(self.x) - 2)
-
-            xi_hat = np.copy(self.x_hat[i])
-            Pi = np.copy(self.P_t[i])
-            ui = self.u[i]
-            x_iP1_i = self.g(xi_hat, ui) 
-            A_iP1 = self.approx_A(xi_hat, ui)
-            #breakpoint()
-            P_iP1_i = A_iP1 @ Pi @ A_iP1.T + Q
-            C_iP1 = self.approx_C(x_iP1_i)
-            K_iP1 = P_iP1_i @ C_iP1.T @ np.linalg.inv(C_iP1 @ P_iP1_i @ C_iP1.T + R)
-            
-            y_iP1 = self.y[i+1]
-            # no need pass y to h; point of H is to linearize y around point
-            # then we subtract from the measured outputs to see how accurate we are
-            xiP1_hat = x_iP1_i + K_iP1 @ (y_iP1 - self.h(x_iP1_i))
-            P_iP1 = (I - K_iP1 @ C_iP1) @ P_iP1_i
-
-            self.x_hat.append(xiP1_hat)
-            self.P_t.append(P_iP1)
-
-            rmse, mae = self.compute_error_metrics()
-            print(f"EKF RMSE: {rmse}")
-            print(f"EKF MAE: {mae}")
-            #breakpoint()
-    
-    #### UNUSED FUNCTION -- the EKF algorithm given linearizes dynamics for us ####
-    # Leaving it here -- difference between linear dynamics and NL confusing
-    # linear dynamics appear to need x, u, and point (x_s, u_s)
-    # x could be xi_hat, u and u_s could be ui, but not sure about x_s
-    # maybe from C, the first-order deriv of measurement model h along x?
-    def g_lin(self, x, u, x_s, u_s):
-        A_bar = self.approx_A(x_s, u_s)
-        B_bar = self.approx_B(x_s, u_s)
-        E = self.g(x_s, u_s) - A_bar @ x_s - B_bar @ u_s
-        return A_bar @ x + B_bar @ u + E
+            I = np.eye(len(self.P))
+            self.P = (I-K@C) @ P_pred 
+            self.x_hat.append(x_updated)
 
     def g(self, x, u):
-        dt, m, g, J = self.dt, self.m, self.gr, self.J
-        x, z, phi, x_v, z_v, phi_v = x[0], x[1], x[2], x[3], x[4], x[5]
-        u1, u2 = u[0], u[1]
-        g = np.array([x + x_v*dt,
-                     z + z_v*dt,
-                     phi + phi_v*dt,
-                     x_v - (u1*dt*np.sin(phi)/m),
-                     z_v - g*dt + (u1*dt*np.cos(phi)/m),
-                     phi_v + (u2*dt)/J])
-
+        # raise NotImplementedError
+        A = np.array([x[3], x[4], x[5], 0, -self.gr, 0])
+        phi = x[2]
+        B = np.array([[0,0], [0,0], [0,0], [-np.sin(phi)/self.m, 0], [np.cos(phi)/self.m, 0], [0,1/self.J]])
+        f_x = A + B@u
+        g = x+ f_x*self.dt
         return g
 
-    # meant to pass x_hat
-    def h(self, state):
-        lx, ly, lz = self.lx, self.ly, self.lz
-        x, z, rel_phi = state[0], state[1], state[2]
-        est_dist = np.sqrt((lx - x)**2 + ly**2 + (lz - z)**2)
-        h = np.array([est_dist,
-                      rel_phi])
-        return h
+
+    def h(self, x):
+        # raise NotImplementedError
+        drone_x = x[0]
+        drone_z = x[1]
+        drone_phi = x[2]
+
+        landmark_x = self.landmark[0]
+        landmark_y = self.landmark[1]
+        landmark_z = self.landmark[2]
+
+        dx = landmark_x - drone_x
+        dz = landmark_z - drone_z
+
+        distance = np.sqrt(dx**2 + landmark_y**2 + dz**2)
+        return np.array([distance, drone_phi])
 
     def approx_A(self, x, u):
-        dt, m = self.dt, self.m
         phi = x[2]
-        u1, u2 = u[0], u[1]
-        # should be transpose?
-        A = np.array([[1, 0, 0,                      dt, 0, 0],
-                      [0, 1, 0,                      0, dt, 0],
-                      [0, 0, 1,                      0, 0, dt],
-                      [0, 0, -(u1*dt*np.cos(phi)/m), 1, 0, 0],
-                      [0, 0, -(u1*dt*np.sin(phi)/m), 0, 1, 0],
-                      [0, 0, 0,                      0, 0, 1]])
-        return A
+        u1 = u[0]
 
-    def approx_B(self, x, u):
-        dt, m, J = self.dt, self.m, self.J
-        phi = x[2]
-        B = np.array([[0, 0],
-                      [0, 0],
-                      [0, 0],
-                      [-dt*np.sin(phi)/m, dt*np.cos(phi)/m],
-                      [0, dt/J]])
-        return B
+        A = np.array([
+            [1,0,0,self.dt,0,0],
+            [0,1,0,0,self.dt,0],
+            [0,0,1,0,0,self.dt],
+            [0,0,-u1*np.cos(phi)*self.dt/self.m,1,0,0],
+            [0,0,-u1*np.sin(phi)*self.dt/self.m,0,1,0],
+            [0,0,0,0,0,1]
+        ])
+        return A
     
-    def approx_C(self, state):
-        lx, ly, lz = self.lx, self.ly, self.lz
-        x, z = state[0], state[1]
-        euc_dist = np.sqrt((lx-x)**2 + ly**2 + (lz-z)**2)
-        d1 = -(lx - x)/euc_dist
-        d2 = -(lz - z)/euc_dist
-        #breakpoint()
-        C = np.array([[d1, d2, 0, 0, 0, 0],
-                      [0, 0, 1, 0, 0, 0]])
+    def approx_C(self, x):
+        # raise NotImplementedError
+        drone_x = x[0]
+        drone_z = x[1]
+        landmark_x = self.landmark[0]
+        landmark_y = self.landmark[1]
+        landmark_z = self.landmark[2]
+
+        dx = landmark_x - drone_x
+        dz = landmark_z - drone_z
+
+        distance = np.sqrt(dx**2 + landmark_y**2 + dz**2)
+
+        C = np.array([[-dx/distance, -dz/distance, 0, 0, 0, 0],[0,0,1,0,0,0]])
         return C
